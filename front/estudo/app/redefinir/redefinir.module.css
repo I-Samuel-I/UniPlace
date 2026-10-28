@@ -1,0 +1,143 @@
+.pagina {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #eef0f5;
+  color: #1b1b1f;
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 40px 36px 32px;
+  box-shadow: 0 4px 24px rgba(20, 20, 40, 0.04);
+}
+
+.titulo {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #ff6b35;
+}
+
+.descricao {
+  margin: 0 auto 28px;
+  max-width: 320px;
+  font-size: 0.6rem;
+  line-height: 1.5;
+  color: #1b1b1f;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rotulo {
+  font-size: 0.7rem;
+  color: #555;
+}
+
+.campo input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: #fff3f0;
+  font: inherit;
+  font-size: 0.8rem;
+  color: #1b1b1f;
+  box-sizing: border-box;
+}
+
+.campo input:focus-visible {
+  outline: 2px solid #ff6b35;
+  outline-offset: 1px;
+}
+
+.inputSenha {
+  position: relative;
+}
+
+.inputSenha input {
+  padding-right: 40px;
+}
+
+.olho {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #1b1b1f;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.olho:focus-visible {
+  outline: 2px solid #ff6b35;
+}
+
+.erro {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #b91c1c;
+}
+
+.salvar {
+  align-self: center;
+  width: 55%;
+  height: 40px;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #ff6b35;
+  color: #fff;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.salvar:hover {
+  background: #e85a26;
+}
+
+.salvar:focus-visible {
+  outline: 2px solid #1b1b1f;
+  outline-offset: 2px;
+}
+
+.voltar {
+  display: block;
+  margin-top: 28px;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #ff6b35;
+  text-decoration: none;
+}
+
+.voltar:hover {
+  text-decoration: underline;
+}

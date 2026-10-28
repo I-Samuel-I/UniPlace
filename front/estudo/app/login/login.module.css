@@ -1,0 +1,184 @@
+.pagina {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+  color: #1b1b1f;
+}
+
+.esquerdo {
+  background: #eef0f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.direito {
+  background: #fff3f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.ilustracao {
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+}
+
+.card {
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 40px 36px;
+  box-shadow: 0 4px 24px rgba(20, 20, 40, 0.04);
+}
+
+.logo {
+  display: block;
+  margin: 0 0 28px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #f26a2e;
+}
+
+.titulo {
+  margin: 0 0 20px;
+  font-size: 1.9rem;
+  font-weight: 700;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rotulo {
+  font-size: 0.7rem;
+  color: #555;
+}
+
+.campo input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: #fff3f0;
+  font: inherit;
+  font-size: 0.8rem;
+  color: #1b1b1f;
+  box-sizing: border-box;
+}
+
+.campo input:focus-visible {
+  outline: 2px solid #f26a2e;
+  outline-offset: 1px;
+}
+
+.linhaSenha {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.esqueceu {
+  font-size: 0.62rem;
+  color: #555;
+  text-decoration: none;
+}
+
+.esqueceu:hover {
+  color: #f26a2e;
+}
+
+.inputSenha {
+  position: relative;
+}
+
+.inputSenha input {
+  padding-right: 40px;
+}
+
+.olho {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #1b1b1f;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.olho:focus-visible {
+  outline: 2px solid #f26a2e;
+}
+
+.entrar {
+  align-self: center;
+  width: 70%;
+  height: 40px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: #f26a2e;
+  color: #fff;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.entrar:hover {
+  background: #d95a22;
+}
+
+.entrar:focus-visible {
+  outline: 2px solid #1b1b1f;
+  outline-offset: 2px;
+}
+
+.cadastro {
+  margin: 24px 0 0;
+  text-align: center;
+  font-size: 0.65rem;
+  color: #777;
+}
+
+.cadastro a {
+  color: #f26a2e;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.cadastro a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 860px) {
+  .pagina {
+    grid-template-columns: 1fr;
+  }
+
+  .direito {
+    display: none;
+  }
+}

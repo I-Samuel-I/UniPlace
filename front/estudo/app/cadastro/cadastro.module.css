@@ -1,0 +1,207 @@
+.pagina {
+  --laranja: #ff7a2f;
+  --laranja-claro: #ff9d5c;
+  --pessego: #fff1ea;
+  --texto: #111111;
+
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  color: var(--texto);
+}
+
+/* ---------- Lado do formulário ---------- */
+.lado_form {
+  background: #eff1f6;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+
+.card {
+  width: 100%;
+  max-width: 400px;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 36px 40px 32px;
+}
+
+.logo {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--laranja-claro);
+  margin-bottom: 36px;
+}
+
+.titulo {
+  margin: 0 0 24px;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.campo label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #444444;
+}
+
+.campo input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: var(--pessego);
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: var(--texto);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.campo input:focus {
+  border-color: var(--laranja);
+  box-shadow: 0 0 0 3px rgba(255, 122, 47, 0.18);
+}
+
+.senha {
+  position: relative;
+}
+
+.senha input {
+  padding-right: 40px;
+}
+
+.olho {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 38px;
+  width: 40px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  color: #555555;
+  cursor: pointer;
+}
+
+.olho:hover {
+  color: var(--laranja);
+}
+
+.erro {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #b91c1c;
+}
+
+.botao {
+  align-self: center;
+  margin-top: 14px;
+  min-width: 160px;
+  height: 36px;
+  padding: 0 28px;
+  border: none;
+  border-radius: 999px;
+  background: var(--laranja);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(255, 122, 47, 0.35);
+  transition: transform 0.1s, background 0.15s;
+}
+
+.botao:hover {
+  background: #f06a1c;
+}
+
+.botao:active {
+  transform: translateY(1px);
+}
+
+.login {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 0.7rem;
+  color: #aaaaaa;
+}
+
+.login a {
+  color: var(--laranja);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.login a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Lado da ilustração ---------- */
+.lado_ilustracao {
+  background: #fff3ee;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+
+/* Ilustração provisória feita só com CSS */
+.celular {
+  width: 280px;
+  height: 340px;
+  background: var(--laranja);
+  border-radius: 28px;
+  padding: 18px;
+  box-shadow: 0 20px 40px rgba(255, 122, 47, 0.25);
+}
+
+.toldo {
+  height: 46px;
+  border-radius: 10px;
+  background: repeating-linear-gradient(
+    90deg,
+    #ffffff 0 24px,
+    var(--laranja-claro) 24px 48px
+  );
+  margin-bottom: 16px;
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.grade span {
+  height: 96px;
+  border-radius: 10px;
+  background: #ffe4d4;
+}
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 800px) {
+  .pagina {
+    grid-template-columns: 1fr;
+  }
+
+  .lado_ilustracao {
+    display: none;
+  }
+}
