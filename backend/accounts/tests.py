@@ -116,6 +116,19 @@ class AuthenticationTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_refresh_token_returns_access_for_marketplace(self):
+        login = self.client.post(
+            "/api/auth/login/",
+            {"email": self.user.email, "password": "UmaSenha-Forte-2026!"},
+            format="json",
+        )
+        response = self.client.post(
+            "/api/auth/refresh/", {"refresh": login.data["refresh"]}, format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {response.data["access"]}')
+        self.assertEqual(self.client.get("/api/posts/").status_code, status.HTTP_200_OK)
+
     def test_authenticated_user_can_change_password(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.post(
