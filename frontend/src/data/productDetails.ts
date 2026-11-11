@@ -7,11 +7,14 @@ export type Seller = {
   name: string;
   avatar: string;
   memberSince: string;
-  rating: number;
-  reviewCount: number;
-  online: boolean;
-  testimonial: string;
+  // Avaliações e presença ainda não existem na API; só os exemplos as têm.
+  rating?: number;
+  reviewCount?: number;
+  online?: boolean;
+  testimonial?: string;
 };
+
+export const DEFAULT_AVATAR = "/images/avatar.svg";
 
 export type ProductDetails = {
   photos: ProductPhoto[];
@@ -199,23 +202,34 @@ const macbookPhotos: ProductPhoto[] = [
 export function getProductDetails(product: Product): ProductDetails {
   const specifications = productSpecifications[product.id] ?? [
     { label: "Categoria", value: product.categoryLabel, icon: "grid" },
+    ...(product.kind === "service"
+      ? [{ label: "Tipo", value: "Serviço", icon: "tag" }]
+      : []),
+    ...Object.entries(product.attributes ?? {})
+      .filter(([label]) => !["Categoria", "Condição", "Tipo"].includes(label))
+      .map(([label, value]) => ({ label, value, icon: "tag" })),
   ];
-  // Data-base fixa mantém a demonstração e o render estáveis em qualquer ambiente.
-  const publishedAt = new Date(
-    Date.UTC(2026, 10, 11 - product.postedDaysAgo, 13, 30),
-  ).toISOString();
+  // Anúncios da API trazem a data real; os exemplos usam uma data-base fixa.
+  const publishedAt =
+    product.publishedAt ??
+    new Date(
+      Date.UTC(2026, 10, 11 - product.postedDaysAgo, 13, 30),
+    ).toISOString();
   return {
-    photos:
-      product.id === "macbook-air-m1-8gb-256gb"
+    photos: product.photos?.length
+      ? product.photos.map((photo, index) => ({
+          src: photo.src,
+          alt: `${product.title} — foto ${index + 1}`,
+        }))
+      : product.id === "macbook-air-m1-8gb-256gb"
         ? [
             { src: product.image, alt: product.title },
             ...macbookPhotos.filter((photo) => photo.src !== product.image),
           ]
         : [{ src: product.image, alt: product.title }],
     publishedAt,
-    specifications: (specifications.some(
-      (specification) => specification.label === "Condição",
-    )
+    specifications: (product.kind === "service" ||
+    specifications.some((specification) => specification.label === "Condição")
       ? specifications
       : [
           ...specifications,
@@ -232,7 +246,9 @@ export function getProductDetails(product: Product): ProductDetails {
           ? { ...specification, value: conditionLabels[product.condition] }
           : specification,
     ),
-    tags: productTags[product.id] ?? [product.categoryLabel],
+    tags: product.tags?.length
+      ? product.tags
+      : (productTags[product.id] ?? [product.categoryLabel]),
     sellerId:
       product.sellerId ?? productSellerIds[product.id] ?? "lucas-almeida",
     location: {
@@ -245,6 +261,24 @@ export function getProductDetails(product: Product): ProductDetails {
 
 export function getSeller(sellerId: string): Seller {
   return sellers[sellerId] ?? sellers["lucas-almeida"];
+}
+
+// Vendedor real quando o anúncio vem da API; caso contrário, o de exemplo.
+export function getProductSeller(product: Product): Seller {
+  if (!product.seller)
+    return getSeller(getProductDetails(product).sellerId);
+  const joined = new Date(product.seller.memberSince);
+  return {
+    id: product.seller.id,
+    name: product.seller.name,
+    avatar: DEFAULT_AVATAR,
+    memberSince: Number.isFinite(joined.getTime())
+      ? new Intl.DateTimeFormat("pt-BR", {
+          month: "short",
+          year: "numeric",
+        }).format(joined)
+      : "data não informada",
+  };
 }
 
 export function getSellerProducts(sellerId: string): Product[] {

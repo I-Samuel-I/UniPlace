@@ -338,6 +338,11 @@ Os testes usam banco isolado e diretórios temporários para os uploads.
 O Django Admin fica em `/admin/`. Crie um administrador com
 `python manage.py createsuperuser`.
 
+Para começar com um conjunto inicial de categorias, campi e locais de retirada,
+rode `python manage.py seed_reference_data`. O comando pode ser repetido sem
+duplicar registros; os campi e locais são nomes de exemplo, ajuste-os no painel.
+Os slugs das categorias principais são os usados pelos filtros do frontend.
+
 Cadastre categorias/subcategorias, campi e locais de retirada pelo painel antes
 de testar a publicação. Esses dados dependem da instituição; nenhum campus fictício
 é criado automaticamente. Anúncios novos no painel também começam como rascunho;

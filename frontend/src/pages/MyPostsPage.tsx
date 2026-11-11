@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import type { ManagedPost } from "../data/account";
-import { categories, type Product } from "../data/catalog";
+import type { Product } from "../data/catalog";
+import {
+  PLACEHOLDER_IMAGE,
+  SaveError,
+  type PostDraft,
+  type ReferenceData,
+} from "../data/marketplace";
+import { errorMessage } from "../lib/api";
 import { Icon } from "../components/Icon";
 import { formatPrice } from "../components/ProductCard";
 import { followLink, productPath } from "../lib/navigation";
@@ -9,17 +16,24 @@ import "./my-posts.css";
 
 type MyPostsPageProps = {
   posts: ManagedPost[];
+  reference: ReferenceData;
   favorites: string[];
   onToggleFavorite: (id: string) => void;
   onSelectProduct: (product: Product) => void;
-  onSavePost: (post: ManagedPost) => void;
-  onDeletePost: (id: string) => void;
-  onSetStatus: (id: string, status: ManagedPost["status"]) => void;
+  onSavePost: SavePost;
+  onDeletePost: (id: string) => Promise<void>;
+  onSetStatus: (id: string, status: ManagedPost["status"]) => Promise<void>;
   onNavigateHome: () => void;
   onOpenChat: (product: Product) => void;
   onNotify: (message: string) => void;
 };
 
+type SavePost = (
+  id: string | null,
+  draft: PostDraft,
+  photo: File | null,
+  publish: boolean,
+) => Promise<void>;
 type StatusFilter = "all" | ManagedPost["status"];
 type SortOrder = "recent" | "price-asc" | "price-desc";
 
@@ -36,14 +50,10 @@ const normalize = (value: string) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLocaleLowerCase("pt-BR");
-const formCategories = [
-  ...categories.filter((category) => category.id !== "mais"),
-  { id: "mochilas", label: "Mochilas & Bolsas", icon: "bag" },
-  { id: "games", label: "Games & Consoles", icon: "grid" },
-];
 
 export function MyPostsPage({
   posts,
+  reference,
   favorites,
   onToggleFavorite,
   onSelectProduct,
@@ -65,6 +75,7 @@ export function MyPostsPage({
   );
   const [deleteTarget, setDeleteTarget] = useState<ManagedPost | null>(null);
   const [deleteError, setDeleteError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!menuId) return;
@@ -143,39 +154,45 @@ export function MyPostsPage({
     ).entries(),
   ];
 
-  function changeStatus(post: ManagedPost, nextStatus: ManagedPost["status"]) {
+  async function changeStatus(
+    post: ManagedPost,
+    nextStatus: ManagedPost["status"],
+  ) {
+    if (busy) return;
+    setBusy(true);
+    setMenuId(null);
     try {
-      onSetStatus(post.id, nextStatus);
-      setMenuId(null);
+      await onSetStatus(post.id, nextStatus);
       onNotify(
         nextStatus === "active"
-          ? "Anúncio reativado."
+          ? post.status === "draft"
+            ? "Anúncio publicado."
+            : "Anúncio reativado."
           : nextStatus === "paused"
             ? "Anúncio pausado."
             : "Anúncio marcado como vendido.",
       );
     } catch (error) {
-      onNotify(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível alterar o anúncio.",
-      );
+      onNotify(errorMessage(error, "Não foi possível alterar o anúncio."));
+    } finally {
+      setBusy(false);
     }
   }
 
-  function removePost() {
-    if (!deleteTarget) return;
+  async function removePost() {
+    if (!deleteTarget || busy) return;
+    setBusy(true);
     try {
-      onDeletePost(deleteTarget.id);
+      await onDeletePost(deleteTarget.id);
       setDeleteTarget(null);
       setDeleteError("");
       onNotify("Anúncio excluído.");
     } catch (error) {
       setDeleteError(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível excluir o anúncio.",
+        errorMessage(error, "Não foi possível excluir o anúncio."),
       );
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -327,25 +344,14 @@ export function MyPostsPage({
                 <strong>{formatPrice(post.price)}</strong>
               </a>
               <div className="owned-post-stats">
-                <span>
-                  <Icon name="eye" size={13} />
-                  <span>
-                    {post.views}
-                    <small>
-                      {post.views === 1 ? "visualização" : "visualizações"}
-                    </small>
-                  </span>
-                </span>
+                {/* A API ainda não mede visualizações nem mensagens por anúncio. */}
                 <button
                   onClick={() => onOpenChat(post)}
-                  aria-label={`Ver ${post.messageCount} ${post.messageCount === 1 ? "mensagem" : "mensagens"} sobre ${post.title}`}
+                  aria-label={`Ver conversas sobre ${post.title}`}
                 >
                   <Icon name="chat" size={13} />
                   <span>
-                    {post.messageCount}
-                    <small>
-                      {post.messageCount === 1 ? "mensagem" : "mensagens"}
-                    </small>
+                    <small>Ver conversas</small>
                   </span>
                 </button>
               </div>
@@ -399,9 +405,12 @@ export function MyPostsPage({
                         />
                         {post.status === "active"
                           ? "Pausar anúncio"
-                          : "Reativar anúncio"}
+                          : post.status === "draft"
+                            ? "Publicar anúncio"
+                            : "Reativar anúncio"}
                       </button>
-                      {post.status !== "sold" && (
+                      {(post.status === "active" ||
+                        post.status === "paused") && (
                         <button onClick={() => changeStatus(post, "sold")}>
                           <Icon name="check" size={14} />
                           Marcar como vendido
@@ -473,6 +482,7 @@ export function MyPostsPage({
         <PostEditor
           key={editorPost?.id ?? "new"}
           post={editorPost}
+          reference={reference}
           onClose={() => setEditorPost(undefined)}
           onSave={onSavePost}
           onNotify={onNotify}
@@ -485,7 +495,7 @@ export function MyPostsPage({
         >
           <p>
             O anúncio <strong>{deleteTarget.title}</strong> será removido das
-            suas publicações neste navegador.
+            suas publicações e do catálogo.
           </p>
           {deleteError && (
             <p className="owned-post-form-error" role="alert">
@@ -494,7 +504,11 @@ export function MyPostsPage({
           )}
           <div className="owned-post-delete-actions">
             <button onClick={() => setDeleteTarget(null)}>Cancelar</button>
-            <button className="owned-post-delete-confirm" onClick={removePost}>
+            <button
+              className="owned-post-delete-confirm"
+              onClick={removePost}
+              disabled={busy}
+            >
               <Icon name="trash" size={16} />
               Excluir anúncio
             </button>
@@ -547,32 +561,42 @@ function OwnedPostDialog({
 
 function PostEditor({
   post,
+  reference,
   onSave,
   onClose,
   onNotify,
 }: {
   post: ManagedPost | null;
-  onSave: (post: ManagedPost) => void;
+  reference: ReferenceData;
+  onSave: SavePost;
   onClose: () => void;
   onNotify: (message: string) => void;
 }) {
+  // Depois de uma falha parcial o anúncio já existe: os próximos envios o atualizam.
+  const [postId, setPostId] = useState<string | null>(post?.id ?? null);
   const [title, setTitle] = useState(post?.title ?? "");
-  const [price, setPrice] = useState(post?.price.toString() ?? "");
-  const [category, setCategory] = useState(post?.category ?? "eletronicos");
+  const [price, setPrice] = useState(post ? post.price.toString() : "");
+  const [kind, setKind] = useState<PostDraft["kind"]>(post?.kind ?? "product");
+  const [categoryId, setCategoryId] = useState(post?.categoryId ?? "");
   const [description, setDescription] = useState(post?.description ?? "");
   const [condition, setCondition] = useState<Product["condition"]>(
     post?.condition ?? "like_new",
   );
-  const [campus, setCampus] = useState(post?.campus ?? "Campus 1");
-  const [pickupLocation, setPickupLocation] = useState(
-    post?.pickupLocation ?? "Bloco Central",
+  const [campusId, setCampusId] = useState(
+    post?.campusId ?? reference.campuses[0]?.id ?? "",
   );
-  const [image, setImage] = useState(post?.image ?? "/images/notebook.jpg");
+  const [pickupLocationId, setPickupLocationId] = useState(
+    post?.pickupLocationId ?? "",
+  );
+  const [preview, setPreview] = useState(post?.image ?? PLACEHOLDER_IMAGE);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [hasPhoto, setHasPhoto] = useState(Boolean(post?.photos?.length));
   const [acceptsNegotiation, setAcceptsNegotiation] = useState(
     post?.acceptsNegotiation ?? true,
   );
   const [acceptsTrade, setAcceptsTrade] = useState(post?.acceptsTrade ?? false);
   const [imageLoading, setImageLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const readerRef = useRef<FileReader | null>(null);
   useEffect(
@@ -584,6 +608,15 @@ function PostEditor({
     [],
   );
 
+  const publish = !post || post.status === "draft";
+  const campusLocations = reference.pickupLocations.filter(
+    (location) => location.campus === campusId,
+  );
+  const missingReference =
+    !reference.categories.length ||
+    !reference.campuses.length ||
+    !reference.pickupLocations.length;
+
   function readPhoto(file: File | undefined) {
     if (!file) return;
     readerRef.current?.abort();
@@ -593,8 +626,8 @@ function PostEditor({
       setError("Escolha uma foto JPG, PNG ou WebP.");
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      setError("A foto deve ter no máximo 2 MB.");
+    if (file.size > 5 * 1024 * 1024) {
+      setError("A foto deve ter no máximo 5 MB.");
       return;
     }
     const reader = new FileReader();
@@ -608,14 +641,15 @@ function PostEditor({
         if (typeof photo !== "string" || !hasSupportedImageHeader(photo)) {
           throw new Error("Invalid image data");
         }
-        const preview = new Image();
-        preview.src = photo;
-        await preview.decode();
+        const image = new Image();
+        image.src = photo;
+        await image.decode();
         if (readerRef.current !== reader) return;
-        if (!preview.naturalWidth || !preview.naturalHeight) {
+        if (!image.naturalWidth || !image.naturalHeight) {
           throw new Error("Empty image");
         }
-        setImage(photo);
+        setPreview(photo);
+        setPhotoFile(file);
         setError("");
         setImageLoading(false);
       } catch {
@@ -634,14 +668,16 @@ function PostEditor({
     reader.readAsDataURL(file);
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     const numericPrice = Number(price.replace(",", "."));
     if (
       !title.trim() ||
       !description.trim() ||
-      !campus.trim() ||
-      !pickupLocation.trim() ||
+      !categoryId ||
+      !campusId ||
+      !pickupLocationId ||
       !price.trim() ||
       !Number.isFinite(numericPrice) ||
       numericPrice < 0
@@ -649,53 +685,80 @@ function PostEditor({
       setError("Preencha os dados do anúncio e informe um preço válido.");
       return;
     }
-    const nextPost: ManagedPost = {
-      ...post,
-      id: post?.id ?? `meu-${crypto.randomUUID()}`,
-      title: title.trim(),
-      price: numericPrice,
-      category,
-      categoryLabel:
-        category === post?.category
-          ? post.categoryLabel
-          : (formCategories.find((item) => item.id === category)?.label ??
-            "Outros"),
-      description: description.trim(),
-      condition,
-      campus: campus.trim(),
-      pickupLocation: pickupLocation.trim(),
-      image,
-      status: post?.status ?? "active",
-      badge:
-        post?.status === "sold"
-          ? { label: "Vendido", tone: "dark" }
-          : condition === "new"
-            ? { label: "Novo", tone: "orange" }
-            : post?.badge?.label === "Novo"
-              ? undefined
-              : post?.badge,
-      postedDaysAgo: post?.postedDaysAgo ?? 0,
-      featured: post?.featured ?? false,
-      acceptsNegotiation,
-      acceptsTrade,
-      views: post?.views ?? 0,
-      messageCount: post?.messageCount ?? 0,
-      updatedAt: new Date().toISOString(),
-    };
+    if (publish && !hasPhoto && !photoFile) {
+      setError("Adicione uma foto para publicar o anúncio.");
+      return;
+    }
+    setSaving(true);
+    setError("");
     try {
-      onSave(nextPost);
+      await onSave(
+        postId,
+        {
+          title: title.trim(),
+          description: description.trim(),
+          price: numericPrice,
+          kind,
+          condition,
+          categoryId,
+          campusId,
+          pickupLocationId,
+          acceptsNegotiation,
+          acceptsTrade,
+        },
+        photoFile,
+        publish,
+      );
+      onNotify(publish ? "Anúncio publicado." : "Alterações salvas.");
       onClose();
-      onNotify(
-        post ? "Alterações salvas." : "Anúncio adicionado às suas publicações.",
-      );
     } catch (saveError) {
-      setError(
-        saveError instanceof Error
-          ? saveError.message
-          : "Não foi possível salvar o anúncio. Tente novamente.",
-      );
+      if (saveError instanceof SaveError) {
+        setPostId(saveError.postId);
+        if (saveError.photoUploaded) {
+          setPhotoFile(null);
+          setHasPhoto(true);
+        }
+        setError(
+          post
+            ? saveError.message
+            : `${saveError.message} O anúncio ficou salvo como rascunho.`,
+        );
+      } else {
+        setError(
+          errorMessage(
+            saveError,
+            "Não foi possível salvar o anúncio. Tente novamente.",
+          ),
+        );
+      }
+      setSaving(false);
     }
   }
+
+  const categoryField = (
+    <label>
+      Categoria
+      <select
+        required
+        value={categoryId}
+        onChange={(event) => setCategoryId(event.target.value)}
+      >
+        <option value="" disabled>
+          Selecione
+        </option>
+        {reference.categories.flatMap((category) => [
+          <option key={category.id} value={category.id}>
+            {category.name}
+          </option>,
+          ...category.children.map((child) => (
+            <option key={child.id} value={child.id}>
+              {category.name} › {child.name}
+            </option>
+          )),
+        ])}
+      </select>
+    </label>
+  );
 
   return (
     <OwnedPostDialog
@@ -704,9 +767,15 @@ function PostEditor({
       className="owned-post-editor"
     >
       <form className="owned-post-form" onSubmit={submit}>
+        {missingReference && (
+          <p className="owned-post-form-error" role="alert">
+            Ainda não há categorias, campi ou locais de retirada cadastrados.
+            Peça a um administrador para cadastrá-los antes de publicar.
+          </p>
+        )}
         <div className="owned-post-photo-editor">
           <img
-            src={image}
+            src={preview}
             alt="Prévia da foto do anúncio"
             width="200"
             height="150"
@@ -714,7 +783,11 @@ function PostEditor({
           <div>
             <label className="owned-post-photo-upload">
               <Icon name="upload" size={17} />
-              {imageLoading ? "Carregando foto..." : "Escolher foto"}
+              {imageLoading
+                ? "Carregando foto..."
+                : hasPhoto
+                  ? "Adicionar nova capa"
+                  : "Escolher foto"}
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
@@ -723,9 +796,11 @@ function PostEditor({
               />
             </label>
             <p>
-              JPG, PNG ou WebP, até 2 MB.
+              JPG, PNG ou WebP, até 5 MB.
               <br />
-              Adicione uma foto do item para ajudar outros estudantes.
+              {hasPhoto
+                ? "A nova foto vira a capa; as fotos atuais continuam na galeria."
+                : "Adicione uma foto do item para ajudar outros estudantes."}
             </p>
           </div>
         </div>
@@ -754,19 +829,38 @@ function PostEditor({
             />
           </label>
           <label>
-            Categoria
+            Tipo
             <select
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
+              value={kind}
+              onChange={(event) =>
+                setKind(event.target.value as PostDraft["kind"])
+              }
             >
-              {formCategories.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
+              <option value="product">Produto</option>
+              <option value="service">Serviço</option>
             </select>
           </label>
         </div>
+        {kind === "service" ? (
+          categoryField
+        ) : (
+          <div className="owned-post-form-row">
+            {categoryField}
+            <label>
+              Condição
+              <select
+                value={condition}
+                onChange={(event) =>
+                  setCondition(event.target.value as Product["condition"])
+                }
+              >
+                <option value="new">Novo / lacrado</option>
+                <option value="like_new">Usado — como novo</option>
+                <option value="used">Com marcas de uso</option>
+              </select>
+            </label>
+          </div>
+        )}
         <label>
           Descrição
           <textarea
@@ -780,37 +874,43 @@ function PostEditor({
         </label>
         <div className="owned-post-form-row">
           <label>
-            Condição
+            Campus
             <select
-              value={condition}
-              onChange={(event) =>
-                setCondition(event.target.value as Product["condition"])
-              }
+              required
+              value={campusId}
+              onChange={(event) => {
+                setCampusId(event.target.value);
+                setPickupLocationId("");
+              }}
             >
-              <option value="new">Novo / lacrado</option>
-              <option value="like_new">Usado — como novo</option>
-              <option value="used">Com marcas de uso</option>
+              <option value="" disabled>
+                Selecione
+              </option>
+              {reference.campuses.map((campus) => (
+                <option key={campus.id} value={campus.id}>
+                  {campus.name}
+                </option>
+              ))}
             </select>
           </label>
           <label>
-            Campus
-            <input
+            Local de retirada
+            <select
               required
-              maxLength={120}
-              value={campus}
-              onChange={(event) => setCampus(event.target.value)}
-            />
+              value={pickupLocationId}
+              onChange={(event) => setPickupLocationId(event.target.value)}
+            >
+              <option value="" disabled>
+                Selecione
+              </option>
+              {campusLocations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
-        <label>
-          Local de retirada
-          <input
-            required
-            maxLength={120}
-            value={pickupLocation}
-            onChange={(event) => setPickupLocation(event.target.value)}
-          />
-        </label>
         <div className="owned-post-form-checkboxes">
           <label>
             <input
@@ -841,10 +941,14 @@ function PostEditor({
           <button
             className="primary-button"
             type="submit"
-            disabled={imageLoading}
+            disabled={imageLoading || saving || missingReference}
           >
-            <Icon name={post ? "check" : "plus"} size={17} />
-            {post ? "Salvar alterações" : "Publicar anúncio"}
+            <Icon name={publish ? "plus" : "check"} size={17} />
+            {saving
+              ? "Salvando..."
+              : publish
+                ? "Publicar anúncio"
+                : "Salvar alterações"}
           </button>
         </div>
       </form>

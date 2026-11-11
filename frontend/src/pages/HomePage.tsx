@@ -58,6 +58,15 @@ export function HomePage({
   onExplore: (category?: string) => void;
 }) {
   const [slide, setSlide] = useState(0);
+  const visible = products.filter(
+    (p) => !p.status || p.status === "active" || p.status === "sold",
+  );
+  // Destaques definidos pela administração primeiro; o restante são os mais recentes.
+  const highlights = [
+    ...visible.filter((p) => p.featured),
+    ...visible.filter((p) => !p.featured && p.status !== "sold"),
+  ].slice(0, 5);
+  const hasFeatured = highlights.some((p) => p.featured);
   return (
     <div className="home-page">
       <section
@@ -132,29 +141,29 @@ export function HomePage({
         aria-labelledby="featured-heading"
       >
         <div className="section-heading">
-          <h2 id="featured-heading">Anúncios em destaque</h2>
+          <h2 id="featured-heading">
+            {hasFeatured ? "Anúncios em destaque" : "Anúncios recentes"}
+          </h2>
           <button className="text-link" onClick={() => onExplore()}>
             Ver todos <span aria-hidden="true">→</span>
           </button>
         </div>
         <div className="featured-grid">
-          {products
-            .filter(
-              (p) =>
-                p.featured &&
-                (!p.status || p.status === "active" || p.status === "sold"),
-            )
-            .slice(0, 5)
-            .map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                favorite={favorites.includes(product.id)}
-                onToggleFavorite={onToggleFavorite}
-                onSelect={onSelectProduct}
-              />
-            ))}
+          {highlights.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              favorite={favorites.includes(product.id)}
+              onToggleFavorite={onToggleFavorite}
+              onSelect={onSelectProduct}
+            />
+          ))}
         </div>
+        {highlights.length === 0 && (
+          <p className="page-status">
+            Ainda não há anúncios publicados. Que tal publicar o primeiro?
+          </p>
+        )}
       </section>
     </div>
   );

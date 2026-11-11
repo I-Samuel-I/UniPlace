@@ -137,7 +137,10 @@ export function ExplorePage({
         return false;
       if (priceMax !== "" && product.price > Math.max(0, Number(priceMax)))
         return false;
-      if (conditions.length && !conditions.includes(product.condition))
+      if (
+        conditions.length &&
+        (product.kind === "service" || !conditions.includes(product.condition))
+      )
         return false;
       if (
         pickupLocations.length &&

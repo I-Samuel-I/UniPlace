@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { products } from "./data/catalog";
 import type { Product } from "./data/catalog";
 import { Icon } from "./components/Icon";
 import { HomePage } from "./pages/HomePage";
 import { ExplorePage } from "./pages/ExplorePage";
 import { ProductPage, ProductNotFound } from "./pages/ProductPage";
-import { getProductDetails, getSeller } from "./data/productDetails";
+import { DEFAULT_AVATAR } from "./data/productDetails";
 import { followLink, productPath } from "./lib/navigation";
 import { MyPostsPage } from "./pages/MyPostsPage";
 import { ChatPage } from "./pages/ChatPage";
-import { currentUser, useManagedPosts } from "./data/account";
-import type { ManagedPost } from "./data/account";
+import { AuthPage } from "./pages/AuthPage";
 import { useChat } from "./data/chat";
+import { useMarketplace } from "./data/marketplace";
+import { logout, useSession } from "./data/session";
 
 type Route = {
   page: "home" | "explore" | "favorites" | "product" | "my-posts" | "chat";
@@ -77,7 +77,8 @@ function readFavorites(): string[] {
 }
 
 export default function App() {
-  const account = useManagedPosts();
+  const session = useSession();
+  const market = useMarketplace(session?.user.id ?? null);
   const chat = useChat();
   const [route, setRoute] = useState(readRoute);
   const [search, setSearch] = useState(route.search);
@@ -91,24 +92,17 @@ export default function App() {
     undefined,
   );
   const popoverRef = useRef<HTMLDivElement>(null);
-  const catalogProducts = useMemo(() => {
-    const managedById = new Map(account.posts.map((post) => [post.id, post]));
-    const baseIds = new Set(products.map((product) => product.id));
-    const toProduct = (post: ManagedPost): Product => ({
-      ...post,
-      sellerId: currentUser.id,
-    });
+  // Catálogo de anúncios ativos mais os anúncios próprios em outros status,
+  // para que o dono consiga abrir rascunhos, pausados e vendidos.
+  const catalogProducts = useMemo<Product[]>(() => {
+    const listed = new Set(market.catalog.map((product) => product.id));
     return [
-      ...products
-        .filter((product) => !account.deletedIds.includes(product.id))
-        .map((product) =>
-          managedById.has(product.id)
-            ? toProduct(managedById.get(product.id)!)
-            : product,
-        ),
-      ...account.posts.filter((post) => !baseIds.has(post.id)).map(toProduct),
+      ...market.catalog,
+      ...market.myPosts.filter((post) => !listed.has(post.id)),
     ];
-  }, [account.posts, account.deletedIds]);
+  }, [market.catalog, market.myPosts]);
+  const isOwnProduct = (product: Product) =>
+    market.myPosts.some((post) => post.id === product.id);
   const favorites = useMemo(() => {
     const availableIds = new Set(catalogProducts.map((product) => product.id));
     return [...new Set(savedFavorites)].filter((id) => availableIds.has(id));
@@ -117,17 +111,16 @@ export default function App() {
     catalogProducts.filter(
       (product) =>
         (!product.status || product.status === "active") &&
-        getProductDetails(product).sellerId === sellerId,
+        product.sellerId === sellerId,
     );
   const currentProduct = catalogProducts.find(
     (product) => product.id === route.productId,
   );
   const activeNavigation = route.page === "product" ? "explore" : route.page;
-  const requestedSeller = route.sellerId
-    ? getSeller(route.sellerId)
+  const validSeller = route.sellerId
+    ? catalogProducts.find((product) => product.sellerId === route.sellerId)
+        ?.seller
     : undefined;
-  const validSeller =
-    requestedSeller?.id === route.sellerId ? requestedSeller : undefined;
 
   useEffect(() => {
     const update = () => {
@@ -144,11 +137,15 @@ export default function App() {
   }, [route.page, currentProduct?.title]);
   useEffect(() => {
     try {
-      localStorage.setItem("uniplace:favorites", JSON.stringify(favorites));
+      // Salva a lista completa: o catálogo chega depois e não deve apagá-la.
+      localStorage.setItem(
+        "uniplace:favorites",
+        JSON.stringify(savedFavorites),
+      );
     } catch {
       /* Storage can be unavailable in private contexts. */
     }
-  }, [favorites]);
+  }, [savedFavorites]);
   useEffect(() => {
     if (!popover) return;
     const close = (event: MouseEvent) => {
@@ -174,9 +171,12 @@ export default function App() {
   }, [mobileMenu]);
   useEffect(() => () => clearTimeout(toastTimer.current), []);
   useEffect(() => {
-    const storageError = account.storageError ?? chat.storageError;
-    if (storageError) notify(storageError);
-  }, [account.storageError, chat.storageError]);
+    if (chat.storageError) notify(chat.storageError);
+  }, [chat.storageError]);
+  useEffect(() => {
+    // Falha ao atualizar dados já exibidos; a primeira carga mostra o erro na página.
+    if (market.loaded && market.error) notify(market.error);
+  }, [market.loaded, market.error]);
 
   function notify(message: string) {
     setToast(message);
@@ -236,7 +236,10 @@ export default function App() {
   }
   function openChat(product: Product) {
     try {
-      const conversationId = chat.startConversation(product);
+      const conversationId = chat.startConversation(
+        product,
+        isOwnProduct(product),
+      );
       navigate("chat", { conversationId });
       if (!conversationId) notify("Este anúncio ainda não tem conversas.");
     } catch (error) {
@@ -258,6 +261,8 @@ export default function App() {
     setMobileMenu(false);
     notify(`${label} estará disponível em uma próxima versão.`);
   }
+
+  if (!session) return <AuthPage />;
 
   const navigation = [
     { id: "home", label: "Início", icon: "home", href: "/" },
@@ -367,9 +372,7 @@ export default function App() {
           </button>
           <button
             className="nav-item nav-item--logout"
-            onClick={() =>
-              notify("Você está navegando na versão de demonstração.")
-            }
+            onClick={() => logout()}
           >
             <Icon name="logout" size={18} />
             <span>Sair</span>
@@ -477,15 +480,15 @@ export default function App() {
                 }
               >
                 <span className="avatar">
-                  <img src={currentUser.avatar} alt="" width="29" height="29" />
+                  <img src={DEFAULT_AVATAR} alt="" width="29" height="29" />
                   <span className="online-dot" />
                 </span>
                 <Icon name="chevron-down" size={13} />
               </button>
               {popover === "profile" && (
                 <div className="header-popover profile-popover">
-                  <strong>{currentUser.name}</strong>
-                  <p>Você está na demonstração do UniPlace.</p>
+                  <strong>{session.user.name}</strong>
+                  <p>{session.user.email}</p>
                   <a
                     href="/perfil"
                     onClick={(event) =>
@@ -518,15 +521,32 @@ export default function App() {
           className={`main-content${route.page === "chat" ? " main-content--chat" : ""}`}
           tabIndex={-1}
         >
-          {route.page === "my-posts" ? (
+          {route.page !== "chat" && !market.loaded ? (
+            <div className="page-status" role="status">
+              {market.error ? (
+                <>
+                  <p>{market.error}</p>
+                  <button
+                    className="primary-button"
+                    onClick={() => void market.reload()}
+                  >
+                    Tentar novamente
+                  </button>
+                </>
+              ) : (
+                <p>Carregando anúncios...</p>
+              )}
+            </div>
+          ) : route.page === "my-posts" ? (
             <MyPostsPage
-              posts={account.posts}
+              posts={market.myPosts}
+              reference={market.reference}
               favorites={favorites}
               onToggleFavorite={toggleFavorite}
               onSelectProduct={openProduct}
-              onSavePost={account.savePost}
-              onDeletePost={account.deletePost}
-              onSetStatus={account.setPostStatus}
+              onSavePost={market.savePost}
+              onDeletePost={market.deletePost}
+              onSetStatus={market.setPostStatus}
               onNavigateHome={() => navigate("home")}
               onOpenChat={openChat}
               onNotify={notify}
@@ -569,12 +589,8 @@ export default function App() {
                 }
                 onNotify={notify}
                 onOpenChat={openChat}
-                ownProduct={account.posts.some(
-                  (post) => post.id === currentProduct.id,
-                )}
-                sellerProducts={sellerProducts(
-                  getProductDetails(currentProduct).sellerId,
-                )}
+                ownProduct={isOwnProduct(currentProduct)}
+                sellerProducts={sellerProducts(currentProduct.sellerId ?? "")}
               />
             ) : (
               <ProductNotFound onExplore={() => navigate("explore")} />

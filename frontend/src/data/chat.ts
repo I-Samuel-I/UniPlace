@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Product } from "./catalog";
-import { getProductDetails, getSeller } from "./productDetails";
+import { getProductSeller } from "./productDetails";
 import { currentUser } from "./account";
 
 export type ChatMessage = {
@@ -18,11 +18,12 @@ export type Conversation = {
     name: string;
     avatar: string;
     online: boolean;
-    email: string;
+    // Ausentes para vendedores reais: a API não expõe e-mail nem avaliações.
+    email?: string;
     institution: string;
     memberSince: string;
-    rating: number;
-    reviewCount: number;
+    rating?: number;
+    reviewCount?: number;
   };
   productId: string;
   messages: ChatMessage[];
@@ -297,18 +298,20 @@ export function isConversation(value: unknown): value is Conversation {
     return false;
   if (
     typeof contact.online !== "boolean" ||
-    !isString(contact.email, 254) ||
+    (contact.email !== undefined && !isString(contact.email, 254)) ||
     !isString(contact.institution, 120) ||
     !isString(contact.memberSince, 40)
   )
     return false;
   if (
-    typeof contact.rating !== "number" ||
-    !Number.isFinite(contact.rating) ||
-    contact.rating < 0 ||
-    contact.rating > 5 ||
-    !isCounter(contact.reviewCount)
+    contact.rating !== undefined &&
+    (typeof contact.rating !== "number" ||
+      !Number.isFinite(contact.rating) ||
+      contact.rating < 0 ||
+      contact.rating > 5)
   )
+    return false;
+  if (contact.reviewCount !== undefined && !isCounter(contact.reviewCount))
     return false;
   if (
     !Array.isArray(value.messages) ||
@@ -497,9 +500,9 @@ export function useChat() {
   );
 
   const startConversation = useCallback(
-    (product: Product) => {
-      const seller = getSeller(getProductDetails(product).sellerId);
-      if (seller.id === currentUser.id || product.id.startsWith("meu-")) {
+    (product: Product, ownProduct = false) => {
+      const seller = getProductSeller(product);
+      if (ownProduct || seller.id === currentUser.id) {
         const buyerConversation = conversationsRef.current.find(
           (conversation) =>
             conversation.productId === product.id &&
@@ -520,8 +523,7 @@ export function useChat() {
           id: seller.id,
           name: seller.name,
           avatar: seller.avatar,
-          online: seller.online,
-          email: `${seller.id.split("-")[0]}@alunos.unifip.edu.br`,
+          online: seller.online ?? false,
           institution: "UNIFIP",
           memberSince: seller.memberSince,
           rating: seller.rating,

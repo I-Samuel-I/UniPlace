@@ -16,6 +16,16 @@ export type Product = {
   acceptsTrade: boolean;
   acceptsNegotiation: boolean;
   description: string;
+  // Campos preenchidos quando o anúncio vem da API.
+  kind?: "product" | "service";
+  categoryId?: string;
+  campusId?: string;
+  pickupLocationId?: string;
+  photos?: Array<{ id: string; src: string }>;
+  tags?: string[];
+  attributes?: Record<string, string>;
+  seller?: { id: string; name: string; memberSince: string };
+  publishedAt?: string;
 };
 
 export type Category = {
@@ -76,7 +86,8 @@ export const catalogGroups: Array<{
   { id: "beleza-saude", label: "Beleza & Saúde", categories: ["beleza"] },
 ];
 
-// Conteúdo demonstrativo para pré-visualizar as telas sem autenticação na API.
+// Conteúdo demonstrativo. O catálogo real vem da API (src/data/marketplace.ts);
+// estes itens só são referenciados pelas conversas de exemplo do chat.
 export const products: Product[] = [
   {
     id: "notebook-acer-aspire-5",

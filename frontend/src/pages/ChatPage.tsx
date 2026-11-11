@@ -663,15 +663,17 @@ export function ChatPage({
             </span>
           </div>
         </div>
-        <div className="chat-contact-rating">
-          <Icon name="star" size={14} />
-          <strong>
-            {contact.rating.toLocaleString("pt-BR", {
-              minimumFractionDigits: 1,
-            })}
-          </strong>
-          <span>({contact.reviewCount} avaliações)</span>
-        </div>
+        {contact.rating !== undefined && (
+          <div className="chat-contact-rating">
+            <Icon name="star" size={14} />
+            <strong>
+              {contact.rating.toLocaleString("pt-BR", {
+                minimumFractionDigits: 1,
+              })}
+            </strong>
+            <span>({contact.reviewCount ?? 0} avaliações)</span>
+          </div>
+        )}
         <button
           className="chat-outline-button"
           onClick={() => setDialog("profile")}
@@ -681,10 +683,12 @@ export function ChatPage({
         </button>
         <section className="chat-contact-about">
           <h3>Sobre o contato</h3>
-          <p>
-            <Icon name="mail" size={15} />
-            <span>{contact.email}</span>
-          </p>
+          {contact.email && (
+            <p>
+              <Icon name="mail" size={15} />
+              <span>{contact.email}</span>
+            </p>
+          )}
           <p>
             <Icon name="package" size={15} />
             <span>{contact.institution}</span>
@@ -760,20 +764,24 @@ export function ChatPage({
               </span>
             </div>
           </div>
-          <div className="chat-contact-rating">
-            <Icon name="star" size={15} />
-            <strong>
-              {contact.rating.toLocaleString("pt-BR", {
-                minimumFractionDigits: 1,
-              })}
-            </strong>
-            <span>({contact.reviewCount} avaliações)</span>
-          </div>
+          {contact.rating !== undefined && (
+            <div className="chat-contact-rating">
+              <Icon name="star" size={15} />
+              <strong>
+                {contact.rating.toLocaleString("pt-BR", {
+                  minimumFractionDigits: 1,
+                })}
+              </strong>
+              <span>({contact.reviewCount ?? 0} avaliações)</span>
+            </div>
+          )}
           <div className="chat-contact-about">
-            <p>
-              <Icon name="mail" size={16} />
-              <span>{contact.email}</span>
-            </p>
+            {contact.email && (
+              <p>
+                <Icon name="mail" size={16} />
+                <span>{contact.email}</span>
+              </p>
+            )}
             <p>
               <Icon name="package" size={16} />
               <span>{contact.institution}</span>
