@@ -1,0 +1,226 @@
+/* Ajuste do body (único seletor global necessário) */
+:global(body) {
+  margin: 0;
+  background: #ececf1;
+}
+
+/* ---------- Base ---------- */
+.container {
+  --laranja: #ff6b2c;
+  --laranja-escuro: #e85a1c;
+  --fundo: #ececf1;
+  --branco: #ffffff;
+  --texto: #111111;
+  --texto-suave: #c4c4c8;
+  --cinza-botao: #d9d9d9;
+  --raio: 14px;
+  --sidebar: 56px;
+
+  background: var(--fundo);
+  color: var(--texto);
+  min-height: 100vh;
+}
+
+.container *,
+.container *::before,
+.container *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.container button {
+  font-family: inherit;
+  cursor: pointer;
+  border: 0;
+}
+
+.container a { color: inherit; text-decoration: none; }
+.container img { display: block; max-width: 100%; }
+
+.container svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.container :focus-visible {
+  outline: 2px solid var(--laranja);
+  outline-offset: 2px;
+}
+
+.card {
+  background: var(--branco);
+  border-radius: var(--raio);
+  padding: 24px;
+}
+
+/* ---------- Menu lateral ---------- */
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--sidebar);
+  background: var(--branco);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0 18px;
+  gap: 18px;
+}
+
+.sidebarLogo {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--laranja);
+  color: var(--branco);
+  font-weight: 700;
+  font-size: 16px;
+  display: grid;
+  place-items: center;
+}
+
+.sidebarNav {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1;
+}
+
+.sidebar a { color: #333; display: grid; place-items: center; }
+.sidebar a:hover { color: var(--laranja); }
+
+/* ---------- Conteúdo ---------- */
+.page { margin-left: var(--sidebar); padding: 10px 14px 24px; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 14px;
+}
+
+.search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--branco);
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+.search svg { width: 14px; height: 14px; }
+.search input {
+  border: 0;
+  outline: 0;
+  width: 100%;
+  font-family: inherit;
+  font-size: 12px;
+  background: transparent;
+}
+
+.topbarLogin {
+  color: var(--laranja);
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* ---------- Produto ---------- */
+.produto {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+/* Galeria */
+.galeriaPrincipal {
+  aspect-ratio: 4 / 3;
+  padding: 16px;
+}
+.galeriaFoto {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.galeriaFoto img { object-fit: contain; }
+
+.galeriaMiniaturas {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.miniatura {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 0;
+  border: 2px solid transparent;
+}
+.miniatura img { width: 100%; height: 100%; object-fit: cover; }
+.miniatura:hover,
+.miniatura:focus-visible,
+.miniaturaAtiva { border-color: var(--laranja); }
+
+/* Detalhes */
+.detalhes { display: flex; flex-direction: column; gap: 14px; }
+
+.infoNome { font-size: 16px; font-weight: 600; }
+
+.infoPreco {
+  font-size: 30px;
+  font-weight: 700;
+  margin: 10px 0 14px;
+}
+
+.infoDescricao {
+  color: var(--texto-suave);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.infoCor { font-size: 11px; font-weight: 600; margin-bottom: 8px; }
+
+.cor {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--branco);
+  box-shadow: 0 0 0 1px #ccc;
+}
+.corPreto { background: #000; }
+
+/* Botões */
+.acoes { display: flex; flex-direction: column; gap: 12px; }
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  transition:  0.2s;
+}
+
+.btnPrimario { background: var(--laranja); color: var(--branco); }
+
+.btnSecundario { background: var(--cinza-botao); color: #222; }
+.btnSecundario:hover { background: #c9c9c9; }
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 800px) {
+  .produto { grid-template-columns: 1fr; }
+  .infoPreco { font-size: 26px; }
+}
