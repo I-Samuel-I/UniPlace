@@ -4,7 +4,7 @@ import type { Product } from "../data/catalog";
 import { catalogGroups, categories } from "../data/catalog";
 import {
   getProductDetails,
-  getSeller,
+  getProductSeller,
   getSellerProducts,
 } from "../data/productDetails";
 import { Icon } from "../components/Icon";
@@ -42,7 +42,7 @@ export function ProductPage({
   sellerProducts,
 }: ProductPageProps) {
   const details = getProductDetails(product);
-  const seller = getSeller(details.sellerId);
+  const seller = getProductSeller(product);
   const sellerInventory = sellerProducts ?? getSellerProducts(seller.id);
   const relatedProducts = sellerInventory.filter(
     (item) => item.id !== product.id,
@@ -326,29 +326,35 @@ export function ProductPage({
               />
               <div className="seller-identity-copy">
                 <h2 id="seller-name">{seller.name}</h2>
-                <span
-                  className={`seller-presence${seller.online ? " is-online" : ""}`}
-                >
-                  <i />
-                  {seller.online ? "Online" : "Offline"}
-                </span>
+                {seller.online !== undefined && (
+                  <span
+                    className={`seller-presence${seller.online ? " is-online" : ""}`}
+                  >
+                    <i />
+                    {seller.online ? "Online" : "Offline"}
+                  </span>
+                )}
                 <span className="seller-since">
                   Membro desde {seller.memberSince}
                 </span>
               </div>
             </div>
-            <div className="seller-rating">
-              <Icon name="star" size={16} />
-              <strong>
-                {seller.rating.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 1,
-                })}
-              </strong>
-              <span>({seller.reviewCount} avaliações)</span>
-            </div>
-            <blockquote className="seller-testimonial">
-              “{seller.testimonial}”
-            </blockquote>
+            {seller.rating !== undefined && (
+              <div className="seller-rating">
+                <Icon name="star" size={16} />
+                <strong>
+                  {seller.rating.toLocaleString("pt-BR", {
+                    minimumFractionDigits: 1,
+                  })}
+                </strong>
+                <span>({seller.reviewCount ?? 0} avaliações)</span>
+              </div>
+            )}
+            {seller.testimonial && (
+              <blockquote className="seller-testimonial">
+                “{seller.testimonial}”
+              </blockquote>
+            )}
             <button
               className="seller-profile-button"
               onClick={() => setAction("seller")}
@@ -492,18 +498,22 @@ export function ProductPage({
               </span>
             </div>
           </div>
-          <div className="seller-rating">
-            <Icon name="star" size={18} />
-            <strong>
-              {seller.rating.toLocaleString("pt-BR", {
-                minimumFractionDigits: 1,
-              })}
-            </strong>
-            <span>({seller.reviewCount} avaliações)</span>
-          </div>
-          <blockquote className="seller-testimonial">
-            “{seller.testimonial}”
-          </blockquote>
+          {seller.rating !== undefined && (
+            <div className="seller-rating">
+              <Icon name="star" size={18} />
+              <strong>
+                {seller.rating.toLocaleString("pt-BR", {
+                  minimumFractionDigits: 1,
+                })}
+              </strong>
+              <span>({seller.reviewCount ?? 0} avaliações)</span>
+            </div>
+          )}
+          {seller.testimonial && (
+            <blockquote className="seller-testimonial">
+              “{seller.testimonial}”
+            </blockquote>
+          )}
           <p>{sellerInventory.length} anúncios disponíveis na comunidade.</p>
           <button
             className="primary-button product-action-submit"
