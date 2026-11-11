@@ -15,12 +15,14 @@ export function AuthPage() {
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   function changeMode(next: Mode) {
     setMode(next);
     setError("");
     setPassword("");
     setPasswordConfirmation("");
+    setShowPassword(false);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -50,103 +52,165 @@ export function AuthPage() {
 
   return (
     <main className="auth-page">
-      <section className="auth-card" aria-labelledby="auth-title">
-        <div className="brand auth-brand">
-          <span className="brand-icon">
-            <Icon name="bag" size={22} />
+      <section className="auth-side" aria-labelledby="auth-welcome-title">
+        <div className="auth-brand">
+          <span className="auth-brand-icon">
+            <Icon name="bag" size={16} />
           </span>
           <span>
-            Uni<span className="brand-accent">Place</span>
+            Uni<span className="auth-brand-accent">Place</span>
           </span>
         </div>
-        <h1 id="auth-title">
-          {mode === "login" ? "Entre na sua conta" : "Crie sua conta"}
-        </h1>
-        <p className="auth-intro">
-          Compre, venda e conecte-se com outros estudantes da sua faculdade.
-        </p>
-        <div className="auth-tabs" role="group" aria-label="Acesso">
-          <button
-            type="button"
-            className={mode === "login" ? "is-active" : ""}
-            aria-pressed={mode === "login"}
-            onClick={() => changeMode("login")}
-          >
-            Entrar
-          </button>
-          <button
-            type="button"
-            className={mode === "register" ? "is-active" : ""}
-            aria-pressed={mode === "register"}
-            onClick={() => changeMode("register")}
-          >
-            Criar conta
-          </button>
+        <div className="auth-side-content">
+          <h2 id="auth-welcome-title" className="auth-welcome-title">
+            Conectando pessoas
+            <span>a boas oportunidades.</span>
+          </h2>
+          <p className="auth-welcome-description">
+            Compre, venda e encontre o que você precisa de forma simples e segura.
+          </p>
+          <img
+            className="auth-illustration"
+            src="/images/login.svg"
+            alt="Ilustração de uma pessoa usando o UniPlace"
+            width="300"
+            height="198"
+          />
         </div>
-        <form className="auth-form" onSubmit={submit}>
-          {mode === "register" && (
-            <label>
-              Nome
-              <input
-                required
-                maxLength={150}
-                autoComplete="name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </label>
-          )}
-          <label>
-            E-mail institucional
-            <input
-              required
-              type="email"
-              autoComplete="email"
-              placeholder="nome@ads.fiponline.edu.br"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </label>
-          <label>
-            Senha
-            <input
-              required
-              type="password"
-              autoComplete={
-                mode === "login" ? "current-password" : "new-password"
-              }
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </label>
-          {mode === "register" && (
-            <label>
-              Confirme a senha
-              <input
-                required
-                type="password"
-                autoComplete="new-password"
-                value={passwordConfirmation}
-                onChange={(event) =>
-                  setPasswordConfirmation(event.target.value)
-                }
-              />
-            </label>
-          )}
-          {error && (
-            <p className="auth-error" role="alert">
-              {error}
-            </p>
-          )}
-          <button className="primary-button" type="submit" disabled={sending}>
-            {sending
-              ? "Aguarde..."
-              : mode === "login"
-                ? "Entrar"
-                : "Criar conta"}
+      </section>
+
+      <section className="auth-form-side" aria-labelledby="auth-title">
+        <p className="auth-switch">
+          {mode === "login" ? "Não tem uma conta?" : "Já tem uma conta?"}
+          <button
+            type="button"
+            className="auth-switch-button"
+            disabled={sending}
+            onClick={() => changeMode(mode === "login" ? "register" : "login")}
+          >
+            {mode === "login" ? "Cadastre-se" : "Entrar"}
+            <Icon name="arrow-right" size={12} />
           </button>
-        </form>
+        </p>
+        <div className="auth-card">
+          <h1 id="auth-title">
+            {mode === "login" ? "Bem-vindo de volta!" : "Crie sua conta"}
+          </h1>
+          <p className="auth-intro">
+            {mode === "login"
+              ? "Faça login para continuar explorando o UniPlace."
+              : "Use seu e-mail institucional para fazer parte do UniPlace."}
+          </p>
+          <form className="auth-form" onSubmit={submit} aria-busy={sending}>
+            {mode === "register" && (
+              <label className="auth-field">
+                <span className="auth-field-label">Nome</span>
+                <Icon name="user" size={16} />
+                <input
+                  required
+                  name="name"
+                  maxLength={150}
+                  autoComplete="name"
+                  placeholder="Seu nome"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              </label>
+            )}
+            <label className="auth-field">
+              <span className="auth-field-label">E-mail institucional</span>
+              <Icon name="mail" size={16} />
+              <input
+                required
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="nome@ads.fiponline.edu.br"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </label>
+            <div className="auth-field">
+              <label className="auth-field-label" htmlFor="auth-password">
+                Senha
+              </label>
+              <PasswordIcon />
+              <input
+                required
+                id="auth-password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Senha"
+                autoComplete={
+                  mode === "login" ? "current-password" : "new-password"
+                }
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+              <button
+                className="auth-password-toggle"
+                type="button"
+                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((visible) => !visible)}
+              >
+                <Icon name="eye" size={16} />
+              </button>
+            </div>
+            {mode === "register" && (
+              <label className="auth-field">
+                <span className="auth-field-label">Confirme a senha</span>
+                <PasswordIcon />
+                <input
+                  required
+                  name="password_confirmation"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Confirme a senha"
+                  autoComplete="new-password"
+                  value={passwordConfirmation}
+                  onChange={(event) =>
+                    setPasswordConfirmation(event.target.value)
+                  }
+                />
+              </label>
+            )}
+            {error && (
+              <p className="auth-error" role="alert">
+                {error}
+              </p>
+            )}
+            <button className="auth-submit" type="submit" disabled={sending}>
+              {sending
+                ? "Aguarde..."
+                : mode === "login"
+                  ? "Entrar"
+                  : "Criar conta"}
+            </button>
+          </form>
+        </div>
+        <p className="auth-footer">
+          © 2026 UniPlace. Todos os direitos reservados.
+        </p>
       </section>
     </main>
+  );
+}
+
+function PasswordIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </svg>
   );
 }

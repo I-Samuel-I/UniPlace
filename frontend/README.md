@@ -33,9 +33,11 @@ npm run preview
 ```
 
 O build verifica os tipos TypeScript e gera os arquivos de produção em `dist/`.
-O comando `check` (`scripts/check-render.mjs`) foi escrito para os dados de
-demonstração e **está desatualizado**: agora o app exige login e carrega os
-anúncios da API, então as verificações precisam ser refeitas com a API simulada.
+O comando `check` (`scripts/check-render.mjs`) verifica as telas com sessão e
+estados da API simulados, incluindo login obrigatório, carregamento, erros,
+rotas, filtros, favoritos, anúncios e persistência das conversas locais. Também
+verifica o cliente HTTP real com respostas simuladas para login, cadastro,
+renovação e expiração da sessão; não precisa iniciar a API Django.
 O servidor de produção deve direcionar as rotas do front para `index.html`.
 
 ## Telas e comportamento
