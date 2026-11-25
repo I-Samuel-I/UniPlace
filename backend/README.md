@@ -103,6 +103,45 @@ docker compose logs -f db
 
 Interrompa o acompanhamento dos logs com `Ctrl+C`; isso não encerra o container.
 
+## Dados fictícios para testar no Docker
+
+Com os serviços em execução, adicione o cenário de demonstração a uma conta
+que já existe. Substitua o e-mail pelo da conta que você usa na aplicação:
+
+```powershell
+docker compose exec backend python manage.py seed_demo_data --owner-email seu-email@ads.fiponline.edu.br
+```
+
+O comando cria 12 usuários fictícios, 40 anúncios (34 ativos), 45 fotos,
+30 conversas com 228 mensagens, favoritos, notificações e três chamados anteriores.
+A conta indicada recebe oito anúncios em todos os estados, 24 conversas com
+12 contatos, dez favoritos e avisos lidos e não lidos nas quatro categorias.
+As negociações têm datas variadas, confirmações de leitura e alguns anexos.
+
+Para comparar as duas pontas de uma conversa, entre em outra janela com uma
+das contas abaixo. Todas as contas fictícias usam a senha `UniPlaceDemo#2026`:
+
+| Conta | E-mail |
+| --- | --- |
+| Lucas Almeida | `demo.lucas@ads.fiponline.edu.br` |
+| Ana Carolina | `demo.ana@medicina.fiponline.edu.br` |
+| Camila Santos | `demo.camila@direito.fiponline.edu.br` |
+| Gabriel Rocha | `demo.gabriel@ads.fiponline.edu.br` |
+
+As fotos ficam em `media/`, e o conteúdo permanece no PostgreSQL do Docker.
+O comando usa somente imagens locais em `posts/demo_assets/`, sem depender de
+internet durante a execução. Não roda automaticamente ao iniciar os containers.
+Pode ser repetido para a mesma conta sem duplicar registros ou redefinir senhas,
+títulos, status e leituras já existentes. A conta principal mantém sua senha.
+Nenhuma mensagem é enviada por WhatsApp ou e-mail; os históricos existem apenas
+no banco local. Os avatares usam iniciais e os anúncios indicam que são fictícios.
+
+Teste isolado do comando:
+
+```powershell
+docker compose exec backend python manage.py test posts.test_demo_data --noinput
+```
+
 ## Autenticação
 
 As rotas usam JSON. O cadastro aceita somente e-mails cujo domínio termine em

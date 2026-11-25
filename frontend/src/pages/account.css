@@ -80,13 +80,14 @@
 .settings-page-heading h1 { margin: 8px 0; font-size: var(--font-page-title); line-height: 1.2; letter-spacing: -1px; }
 .settings-page-heading > p { margin: 0; color: var(--muted); font-size: var(--font-body); line-height: 1.6; }
 .settings-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 28px; align-items: start; }
-.settings-sidebar { position: sticky; top: 88px; display: grid; gap: 20px; min-width: 0; }
-.settings-identity { display: flex; flex-direction: column; align-items: center; padding: 28px 20px; border: 1px solid var(--border); border-radius: 18px; background: white; text-align: center; }
+.settings-sidebar { position: sticky; top: 88px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; }
+.settings-identity { display: flex; flex-direction: column; align-items: center; min-width: 0; padding: 28px 20px; border: 1px solid var(--border); border-radius: 18px; background: white; text-align: center; }
 .settings-identity-avatar { width: 72px; height: 72px; margin-bottom: 16px; border: 3px solid #fff0e9; border-radius: 50%; object-fit: cover; background: #fff4ef; }
 .settings-identity > strong { max-width: 100%; font-size: 20px; overflow-wrap: anywhere; }
 .settings-identity > span:not(.settings-institution) { max-width: 100%; margin-top: 6px; color: var(--muted); font-size: var(--font-caption); overflow-wrap: anywhere; }
+.settings-identity > .settings-identity-email { display: block; width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .settings-institution { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; margin-top: 16px; border-radius: 8px; background: #fff1eb; color: var(--orange-deep); font-size: var(--font-caption); font-weight: 650; }
-.settings-identity small { margin-top: 14px; color: var(--muted); font-size: var(--font-caption); }
+.settings-identity small { max-width: 100%; margin-top: 14px; color: var(--muted); font-size: var(--font-caption); text-wrap: balance; }
 .settings-navigation { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--border); border-radius: 16px; background: white; }
 .settings-navigation a { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 12px; border-radius: 10px; color: #52617a; font-size: var(--font-body); }
 .settings-navigation a:hover { background: #f7f8fc; }
@@ -128,7 +129,7 @@
 .account-form .settings-password-help .settings-text-button { flex-shrink: 0; min-height: 24px; padding: 0; font-size: var(--font-caption); }
 .settings-session-row { display: flex; align-items: center; gap: 14px; margin: 28px 0 12px; padding: 24px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .settings-device-icon { display: grid; place-items: center; flex-shrink: 0; width: 48px; height: 48px; background: var(--background); border: 1px solid var(--border); border-radius: 12px; color: #52617a; }
-.settings-session-row > div { flex: 1; min-width: 0; }
+.settings-session-row > div { flex: 1 1 160px; min-width: 0; }
 .settings-session-row strong { font-size: var(--font-body); }
 .settings-session-row p { margin: 4px 0 0; color: var(--muted); font-size: var(--font-caption); }
 .settings-session-dot { display: inline-block; width: 7px; height: 7px; margin-right: 4px; border-radius: 50%; background: #24a574; }

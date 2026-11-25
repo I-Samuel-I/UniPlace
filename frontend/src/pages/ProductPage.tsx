@@ -12,6 +12,7 @@ import { ProductCard, formatPrice } from "../components/ProductCard";
 import { followLink, productPath } from "../lib/navigation";
 import "./product.css";
 import { RequestForm } from '../components/RequestForm';
+import { ReportListingDialog } from '../components/ReportListingDialog';
 
 type ProductPageProps = {
   product: Product;
@@ -526,12 +527,11 @@ export function ProductPage({
         </ProductActionDialog>
       )}
       {action === "report" && (
-        <ProductActionDialog
-          title="Denunciar anúncio"
+        <ReportListingDialog
+          product={product}
           onClose={() => setAction(null)}
-        >
-          <RequestForm kind="report" postId={product.id} onSuccess={() => { setAction(null); onNotify('Denúncia registrada. Acompanhe em Ajuda e Suporte.'); }} />
-        </ProductActionDialog>
+          onSuccess={() => { setAction(null); onNotify('Denúncia registrada. Acompanhe em Ajuda e Suporte.'); }}
+        />
       )}
       {action === "support" && (
         <ProductActionDialog

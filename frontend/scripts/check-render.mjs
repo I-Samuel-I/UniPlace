@@ -128,7 +128,7 @@ try {
     for (const userSession of [session, null]) {
       const missing = render(path, { session: userSession, market: { loaded: false, error: "API indisponível" } });
       assert.ok(missing.includes('id="not-found-main"'), `Expected 404 for ${path}`);
-      assert.ok(missing.includes('PÁGINA NÃO ENCONTRADA'));
+      assert.ok(missing.includes('Ops, esse caminho'));
       assert.ok(missing.includes('Voltar ao início'));
       assert.ok(missing.includes('href="/explorar"'));
       assert.ok(missing.includes('href="/suporte"'));
@@ -242,6 +242,19 @@ try {
   assert.ok(reportMessage.includes('Motivo: Suspeita de golpe ou fraude'));
   assert.ok(reportMessage.includes('Link relacionado: https://uniplace.test/anuncios/item?a=1&b=2'));
   assert.ok(buildSupportMessage({ categoryId: 'support', reasonId: 'publish' }));
+  const { buildListingReport, REPORT_DETAILS_LIMIT } = await server.ssrLoadModule('/src/data/reports.ts');
+  assert.equal(buildListingReport('', ''), null);
+  assert.equal(buildListingReport('invalid', 'Descrição'), null);
+  assert.equal(buildListingReport('other', '   '), null);
+  assert.equal(buildListingReport('scam', 'x'.repeat(REPORT_DETAILS_LIMIT + 1)), null);
+  assert.deepEqual(buildListingReport('scam', ''), {
+    subject: 'Denúncia de anúncio: Suspeita de golpe ou fraude',
+    message: 'Motivo: Suspeita de golpe ou fraude',
+  });
+  assert.deepEqual(buildListingReport('other', '  O anúncio tem um problema diferente.\nMais detalhes.  '), {
+    subject: 'Denúncia de anúncio: Outro motivo',
+    message: 'Motivo: Outro motivo\n\nDetalhes:\nO anúncio tem um problema diferente.\nMais detalhes.',
+  });
   const emptyNotices = render('/notificacoes', { market: { loaded: false } });
   assert.deepEqual(activeNavigation(emptyNotices), ['Notificações']);
   assert.ok(emptyNotices.includes('Suas novidades chegam por aqui'));

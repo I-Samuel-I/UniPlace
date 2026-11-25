@@ -418,7 +418,7 @@ export function ChatPage({
           >
             <img src={contact.avatar} alt="" width="37" height="37" />
             <span>
-              <strong>{contact.name}</strong>
+              <strong title={contact.name}>{contact.name}</strong>
               <span
                 className={`chat-presence${contact.online ? " is-online" : ""}`}
               >

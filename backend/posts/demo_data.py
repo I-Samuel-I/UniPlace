@@ -102,7 +102,7 @@ DEMO_POSTS = [
     DemoPost("apostilas", "Apostilas de revisão de fisiologia", "apostilas", "40.00", "livro.jpg", 0,
              "Conjunto de apostilas impressas com exercícios resolvidos e resumos do semestre. Material para complementar os estudos.", condition="used"),
     DemoPost("macbook-estudos", "MacBook Air para faculdade · com carregador", "notebooks", "3500.00", "macbook-air-desk.jpg", 3,
-             "Notebook muito bem cuidado, usado em trabalhos da faculdade. Acompanha carregador e posso parcelar o encontro para testar com calma.",
+             "Notebook muito bem cuidado, usado em trabalhos da faculdade. Acompanha carregador e podemos marcar um encontro para testar com calma.",
              gallery=("macbook-air-open.jpg", "macbook-air-keyboard.jpg"), attributes={"Marca": "Apple", "Memória RAM": "8 GB"}),
     DemoPost("doacao-livros", "Doação de livros e materiais do ciclo básico", "livros", "0.00", "livro.jpg", 0,
              "Quero doar alguns materiais para quem está começando. Basta combinar a retirada; não cobro pelos livros.", condition="used", negotiable=False),

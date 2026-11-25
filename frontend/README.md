@@ -2,7 +2,8 @@
 
 React, TypeScript e Vite integrados à API Django. O catálogo, os anúncios pessoais,
 favoritos, conversas, notificações, perfil e chamados são persistidos no backend.
-Não há contas nem conversas de demonstração na interface autenticada.
+A interface autenticada consulta a API. Para testar com dados fictícios persistidos
+no Docker, use o comando opcional `seed_demo_data` descrito no README do backend.
 
 ## Ambiente completo com Docker
 

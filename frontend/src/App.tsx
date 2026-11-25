@@ -462,8 +462,8 @@ function MarketplaceApp({ route, onRouteChange }: { route: Route; onRouteChange:
               </button>
               {popover === "profile" && (
                 <div className="header-popover profile-popover">
-                  <strong>{session.user.name}</strong>
-                  <p>{session.user.email}</p>
+                  <strong title={session.user.name}>{session.user.name}</strong>
+                  <p title={session.user.email}>{session.user.email}</p>
                   <a
                     href="/perfil"
                     onClick={(event) =>

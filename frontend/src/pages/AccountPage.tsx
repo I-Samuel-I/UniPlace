@@ -199,8 +199,8 @@ function SettingsPage({ onNotify, onProfileChange }: Omit<Props, "support">) {
         <aside className="settings-sidebar">
           <div className="settings-identity">
             <img className="settings-identity-avatar" src={profile.avatar || DEFAULT_AVATAR} alt="Sua foto de perfil" width="72" height="72" />
-            <strong>{profile.name}</strong>
-            <span>{profile.email}</span>
+            <strong title={profile.name}>{profile.name}</strong>
+            <span className="settings-identity-email" title={profile.email}>{profile.email}</span>
             <span className="settings-institution"><Icon name="graduation" size={16} /> Conta institucional</span>
             {joined && <small>Membro desde {joined}</small>}
           </div>

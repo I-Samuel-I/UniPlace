@@ -807,6 +807,7 @@
   }
   .owned-post-form-footer {
     justify-content: stretch;
+    flex-direction: column-reverse;
   }
   .owned-post-form-footer > button {
     flex: 1;
