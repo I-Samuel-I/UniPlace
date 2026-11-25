@@ -5,6 +5,7 @@ from django.urls import include, path
 from accounts.views import (
     AvatarView, ExportAccountView, LoginView, PasswordChangeView, ProfileView,
     RegisterView, RevokeSessionsView, SessionRefreshView,
+    PublicProfileView,
 )
 
 urlpatterns = [
@@ -14,6 +15,7 @@ urlpatterns = [
     path("api/auth/refresh/", SessionRefreshView.as_view(), name="token-refresh"),
     path("api/auth/password/", PasswordChangeView.as_view(), name="password-change"),
     path("api/me/", ProfileView.as_view(), name="profile"),
+    path("api/profiles/<int:user_id>/", PublicProfileView.as_view(), name="public-profile"),
     path("api/me/avatar/", AvatarView.as_view(), name="profile-avatar"),
     path("api/me/export/", ExportAccountView.as_view(), name="account-export"),
     path("api/me/sessions/revoke/", RevokeSessionsView.as_view(), name="revoke-sessions"),

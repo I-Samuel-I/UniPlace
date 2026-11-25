@@ -5,7 +5,8 @@ import { HomePage } from "./pages/HomePage";
 import { ExplorePage } from "./pages/ExplorePage";
 import { ProductPage, ProductNotFound } from "./pages/ProductPage";
 import { DEFAULT_AVATAR } from "./data/productDetails";
-import { followLink, productPath } from "./lib/navigation";
+import { followLink, productPath, profilePath } from "./lib/navigation";
+import { PublicProfilePage } from "./pages/PublicProfilePage";
 import { MyPostsPage } from "./pages/MyPostsPage";
 import { ChatPage } from "./pages/ChatPage";
 import { AuthPage } from "./pages/AuthPage";
@@ -25,7 +26,7 @@ import { useSmoothScroll } from './lib/smoothScroll';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 type Route = {
-  page: "home" | "explore" | "favorites" | "product" | "my-posts" | "chat" | "account" | "support" | "notifications" | "not-found";
+  page: "home" | "explore" | "favorites" | "product" | "seller" | "my-posts" | "chat" | "account" | "support" | "notifications" | "not-found";
   search: string;
   category: string;
   productId: string;
@@ -36,11 +37,17 @@ function readRoute(): Route {
   const params = new URLSearchParams(window.location.search);
   const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
   const chatMatch = pathname.match(/^\/chat\/([^/]+)$/);
+  const profileMatch = pathname.match(/^\/perfil\/([^/]+)$/);
   const productMatch = pathname.match(
     /^\/anuncios\/([^/]+)\/?$/,
   );
   let productId = "";
   let conversationId = "";
+  let sellerId = params.get("vendedor") ?? "";
+  if (profileMatch) {
+    try { sellerId = decodeURIComponent(profileMatch[1]); }
+    catch { sellerId = profileMatch[1]; }
+  }
   if (chatMatch) {
     try {
       conversationId = decodeURIComponent(chatMatch[1]);
@@ -56,7 +63,7 @@ function readRoute(): Route {
     }
   }
   return {
-    page: productMatch
+    page: profileMatch ? "seller" : productMatch
       ? "product"
       : chatMatch || pathname === "/chat"
         ? "chat"
@@ -74,7 +81,7 @@ function readRoute(): Route {
     search: params.get("q") ?? "",
     category: params.get("categoria") ?? "",
     productId,
-    sellerId: params.get("vendedor") ?? "",
+    sellerId,
     conversationId,
   };
 }
@@ -137,7 +144,7 @@ function MarketplaceApp({ route, onRouteChange }: { route: Route; onRouteChange:
   const currentProduct = catalogProducts.find(
     (product) => product.id === route.productId,
   );
-  const activeNavigation = route.page === "product" ? "explore" : route.page;
+  const activeNavigation = route.page === "product" || route.page === "seller" ? "explore" : route.page;
   const validSeller = route.sellerId
     ? catalogProducts.find((product) => product.sellerId === route.sellerId)
         ?.seller
@@ -149,6 +156,7 @@ function MarketplaceApp({ route, onRouteChange }: { route: Route; onRouteChange:
     setPopover(null);
   }, [route]);
   useEffect(() => {
+    if (route.page === "seller") return;
     document.title = `${route.page === 'notifications' ? 'Notificações' : route.page === 'account' ? 'Meu perfil' : route.page === 'support' ? 'Ajuda e Suporte' : route.page === "home" ? "Início" : route.page === "favorites" ? "Favoritos" : route.page === "my-posts" ? "Meus Anúncios" : route.page === "chat" ? "Chat" : route.page === "product" ? (currentProduct?.title ?? "Anúncio não encontrado") : "Explorar Anúncios"} | UniPlace`;
   }, [route.page, currentProduct?.title]);
   useEffect(() => { if (community.error) notify(community.error); }, [community.error]);
@@ -209,9 +217,9 @@ function MarketplaceApp({ route, onRouteChange }: { route: Route; onRouteChange:
     const params = new URLSearchParams();
     if (category) params.set("categoria", category);
     if (query) params.set("q", query);
-    if (sellerId) params.set("vendedor", sellerId);
+    if (sellerId && page !== "seller") params.set("vendedor", sellerId);
     const path =
-      page === 'notifications' ? '/notificacoes' : page === 'account' ? '/perfil' : page === 'support' ? '/suporte' : page === "home"
+      page === "seller" ? profilePath(sellerId) : page === 'notifications' ? '/notificacoes' : page === 'account' ? '/perfil' : page === 'support' ? '/suporte' : page === "home"
         ? "/"
         : page === "favorites"
           ? "/favoritos"
@@ -497,7 +505,21 @@ function MarketplaceApp({ route, onRouteChange }: { route: Route; onRouteChange:
           className={`main-content${route.page === "chat" ? " main-content--chat" : ""}`}
           tabIndex={-1}
         >
-          {route.page === 'notifications' ? <NotificationsPage key={session.user.id} userId={session.user.id} notifications={notifications} onOpen={openNotice} onNotify={notify} /> : route.page === 'account' || route.page === 'support' ? <AccountPage key={`${route.page}-${session.user.id}`} support={route.page === 'support'} onNotify={notify} onProfileChange={() => { void market.reload(); void chat.reload(); }} /> : route.page === 'chat' && !chat.loaded ? <div className="page-status" role="status">Carregando conversas...</div> : route.page !== "chat" && !market.loaded ? (
+          {route.page === "seller" ? (
+            <PublicProfilePage
+              key={`${session.user.id}-${route.sellerId}`}
+              profileId={route.sellerId}
+              products={market.catalog}
+              productsLoaded={market.loaded}
+              productsError={market.error}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+              onSelectProduct={openProduct}
+              onNavigateHome={() => navigate("home")}
+              onExplore={() => navigate("explore")}
+              onRetryProducts={() => void market.reload()}
+            />
+          ) : route.page === 'notifications' ? <NotificationsPage key={session.user.id} userId={session.user.id} notifications={notifications} onOpen={openNotice} onNotify={notify} /> : route.page === 'account' || route.page === 'support' ? <AccountPage key={`${route.page}-${session.user.id}`} support={route.page === 'support'} onNotify={notify} onProfileChange={() => { void market.reload(); void chat.reload(); }} /> : route.page === 'chat' && !chat.loaded ? <div className="page-status" role="status">Carregando conversas...</div> : route.page !== "chat" && !market.loaded ? (
             <div className="page-status" role="status">
               {market.error ? (
                 <>
@@ -540,6 +562,7 @@ function MarketplaceApp({ route, onRouteChange }: { route: Route; onRouteChange:
               onMarkRead={markConversationRead}
               onToggleFavorite={(id) => { void chat.toggleFavorite(id).catch(failure => notify(errorMessage(failure, 'Não foi possível atualizar a conversa.'))); }}
               onSelectProduct={openProduct}
+              onOpenProfile={sellerId => navigate("seller", { sellerId })}
               onNotify={notify}
             /></>
           ) : route.page === "home" ? (
@@ -560,8 +583,8 @@ function MarketplaceApp({ route, onRouteChange }: { route: Route; onRouteChange:
                 onSelectProduct={openProduct}
                 onNavigateHome={() => navigate("home")}
                 onExplore={(category) => navigate("explore", { category })}
-                onExploreSeller={(sellerId) =>
-                  navigate("explore", { sellerId })
+                onOpenProfile={(sellerId) =>
+                  navigate("seller", { sellerId })
                 }
                 onNotify={notify}
                 onOpenChat={openChat}

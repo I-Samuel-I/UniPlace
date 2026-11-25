@@ -4,6 +4,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.db import transaction
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from accounts.authentication import SessionRefreshSerializer
@@ -20,6 +21,7 @@ from accounts.serializers import (
     AvatarSerializer,
     CurrentPasswordSerializer,
     DeleteAccountSerializer,
+    PublicProfileSerializer,
 )
 
 
@@ -61,6 +63,16 @@ class PasswordChangeView(generics.GenericAPIView):
             user = serializer.save()
             data = session_response(user)
         return Response({"detail": "Senha alterada com sucesso.", **data})
+
+
+class PublicProfileView(generics.RetrieveAPIView):
+    serializer_class = PublicProfileSerializer
+    lookup_url_kwarg = "user_id"
+
+    def get_queryset(self):
+        return User.objects.filter(is_active=True).annotate(
+            active_posts=Count("posts", filter=Q(posts__is_active=True, posts__status="active")),
+        )
 
 
 class ProfileView(generics.RetrieveUpdateAPIView):

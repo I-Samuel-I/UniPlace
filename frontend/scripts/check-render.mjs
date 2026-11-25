@@ -37,6 +37,11 @@ const server = await createServer({
       if (id.endsWith('/src/data/chat.ts')) {
         return source.replace('export function useChat(userId: number | null) {', `export function useChat(userId: number | null) {\nreturn globalThis.${fixtureKey}.chat;`);
       }
+      if (id.endsWith('/src/data/publicProfile.ts')) {
+        const declaration = 'export function usePublicProfile(profileId: string) {';
+        assert.ok(source.includes(declaration));
+        return source.replace(declaration, `${declaration}\nreturn globalThis.${fixtureKey}.publicProfile;`);
+      }
       if (id.endsWith('/src/data/community.ts')) {
         return source.replace('export function useCommunity(userId: number | null) {', `export function useCommunity(userId: number | null) {\nreturn globalThis.${fixtureKey}.community;`);
       }
@@ -97,6 +102,11 @@ try {
         favorites: options.favorites ?? [], error: '',
         reload: async () => {}, toggleFavorite: async () => {},
       },
+      publicProfile: {
+        profile: { id: 2, name: 'Matheus Fontes', avatar: null, member_since: '2024-01-15T12:00:00Z', active_posts: 5, campuses: [{ id: 'campus-1', name: 'UNIFIP', city: 'Patos', state: 'PB' }] },
+        loaded: true, error: '', notFound: false, reload: () => {},
+        ...options.publicProfile,
+      },
       notifications: {
         data: { results: [], unread: 0, total: 0 }, loaded: true, error: '', busy: null, revision: 0,
         reload: async () => {}, markRead: async () => true, markAllRead: async () => true, remove: async () => true,
@@ -124,7 +134,7 @@ try {
   const cardCount = (html) => (html.match(/<article class="product-card/g) ?? []).length;
 
   // Unknown URLs show the public 404, even without a session or a working API.
-  for (const path of ["/pagina-inexistente", "/explorar/nao-existe", "/chat/conversa/extra", "/anuncios/item/extra", "/qualquer/coisa/?q=teste#detalhes", "/%E0%A4%A"]) {
+  for (const path of ["/pagina-inexistente", "/explorar/nao-existe", "/chat/conversa/extra", "/anuncios/item/extra", "/perfil/pessoa/extra", "/qualquer/coisa/?q=teste#detalhes", "/%E0%A4%A"]) {
     for (const userSession of [session, null]) {
       const missing = render(path, { session: userSession, market: { loaded: false, error: "API indisponível" } });
       assert.ok(missing.includes('id="not-found-main"'), `Expected 404 for ${path}`);
@@ -141,7 +151,7 @@ try {
   }
 
   // Every protected route must show the actual login form before authentication.
-  for (const path of ["/", "/explorar", "/meus-anuncios", "/chat", "/notificacoes", "/anuncios/inexistente"]) {
+  for (const path of ["/", "/explorar", "/meus-anuncios", "/chat", "/notificacoes", "/perfil/42", "/anuncios/inexistente"]) {
     const login = render(path, { session: null });
     assert.match(login, /<h1 id="auth-title"/);
     assert.match(login, /type="email"/);
@@ -199,6 +209,32 @@ try {
   const seller = render("/explorar?vendedor=matheus-fontes");
   assert.ok(seller.includes("Anúncios de Matheus Fontes"));
   assert.equal(cardCount(seller), 5);
+  const profile = render('/perfil/matheus-fontes');
+  assert.deepEqual(activeNavigation(profile), ['Explorar Anúncios']);
+  assert.ok(profile.includes('Anúncios de Matheus'));
+  assert.ok(profile.includes('Informações do perfil'));
+  assert.ok(profile.includes('Matheus Fontes'));
+  assert.ok(profile.includes('janeiro de 2024'));
+  assert.ok(profile.includes('UNIFIP'));
+  assert.equal(cardCount(profile), 5);
+  assert.ok(!profile.includes('Anúncio expirado'));
+  assert.ok(!profile.includes('owned-post-card'));
+  assert.ok(!profile.includes('Novo anúncio'));
+  assert.ok(!profile.includes(session.user.email));
+  assert.equal(cardCount(render('/perfil/matheus-fontes/', { market: { catalog: catalog.filter(post => post.sellerId !== 'matheus-fontes') } })), 0);
+  const emptyProfile = render('/perfil/sem-anuncios', { publicProfile: { profile: { id: 3, name: 'Pessoa sem anúncios', avatar: null, member_since: '2026-11-25T12:00:00Z', active_posts: 0, campuses: [] } } });
+  assert.ok(emptyProfile.includes('Pessoa sem anúncios'));
+  assert.ok(emptyProfile.includes('Ainda não há anúncios por aqui'));
+  assert.equal(cardCount(emptyProfile), 0);
+  assert.ok(render('/perfil/404', { publicProfile: { profile: null, notFound: true } }).includes('Perfil indisponível'));
+  assert.ok(render('/perfil/42', { publicProfile: { profile: null, loaded: false }, market: { loaded: false } }).includes('Carregando perfil'));
+  assert.ok(render('/perfil/42', { publicProfile: { profile: null, error: 'Erro ao buscar perfil' } }).includes('Tentar novamente'));
+  const profileCatalogError = render('/perfil/matheus-fontes', { market: { loaded: false, error: 'Erro nos anúncios' } });
+  assert.ok(profileCatalogError.includes('Matheus Fontes'));
+  assert.ok(profileCatalogError.includes('Erro nos anúncios'));
+  assert.ok(product.includes('href="/perfil/matheus-fontes"'));
+  const { profilePath } = await server.ssrLoadModule('/src/lib/navigation.ts');
+  assert.equal(profilePath('id /?&'), '/perfil/id%20%2F%3F%26');
   for (const path of ["/anuncios/inexistente", "/anuncios/%E0%A4%A"]) {
     assert.ok(render(path).includes("Anúncio não encontrado"));
   }

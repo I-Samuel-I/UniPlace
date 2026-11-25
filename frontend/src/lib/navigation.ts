@@ -4,6 +4,10 @@ export function productPath(id: string) {
   return `/anuncios/${encodeURIComponent(id)}`;
 }
 
+export function profilePath(id: string) {
+  return `/perfil/${encodeURIComponent(id)}`;
+}
+
 export function followLink(
   event: MouseEvent<HTMLAnchorElement>,
   navigate: () => void,

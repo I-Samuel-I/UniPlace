@@ -9,7 +9,7 @@ import {
 } from "../data/productDetails";
 import { Icon } from "../components/Icon";
 import { ProductCard, formatPrice } from "../components/ProductCard";
-import { followLink, productPath } from "../lib/navigation";
+import { followLink, productPath, profilePath } from "../lib/navigation";
 import "./product.css";
 import { RequestForm } from '../components/RequestForm';
 import { ReportListingDialog } from '../components/ReportListingDialog';
@@ -21,14 +21,14 @@ type ProductPageProps = {
   onSelectProduct: (product: Product) => void;
   onNavigateHome: () => void;
   onExplore: (category?: string) => void;
-  onExploreSeller: (sellerId: string) => void;
+  onOpenProfile: (sellerId: string) => void;
   onNotify: (message: string) => void;
   onOpenChat: (product: Product) => void;
   ownProduct?: boolean;
   sellerProducts?: Product[];
 };
 
-type Action = "gallery" | "seller" | "report" | "support" | "share" | null;
+type Action = "gallery" | "report" | "support" | "share" | null;
 
 export function ProductPage({
   product,
@@ -37,7 +37,7 @@ export function ProductPage({
   onSelectProduct,
   onNavigateHome,
   onExplore,
-  onExploreSeller,
+  onOpenProfile,
   onNotify,
   onOpenChat,
   ownProduct = false,
@@ -357,12 +357,13 @@ export function ProductPage({
                 “{seller.testimonial}”
               </blockquote>
             )}
-            <button
+            <a
               className="seller-profile-button"
-              onClick={() => setAction("seller")}
+              href={profilePath(seller.id)}
+              onClick={event => followLink(event, () => onOpenProfile(seller.id))}
             >
               Ver perfil completo
-            </button>
+            </a>
           </section>
 
           <section className="location-card" aria-labelledby="location-title">
@@ -427,9 +428,9 @@ export function ProductPage({
             <h2 id="seller-more-title">Mais anúncios do vendedor</h2>
             <a
               className="text-link"
-              href={`/explorar?vendedor=${seller.id}`}
+              href={profilePath(seller.id)}
               onClick={(event) =>
-                followLink(event, () => onExploreSeller(seller.id))
+                followLink(event, () => onOpenProfile(seller.id))
               }
             >
               Ver todos <span aria-hidden="true">→</span>
@@ -484,46 +485,6 @@ export function ProductPage({
               </button>
             </div>
           )}
-        </ProductActionDialog>
-      )}
-      {action === "seller" && (
-        <ProductActionDialog
-          title="Perfil do vendedor"
-          onClose={() => setAction(null)}
-        >
-          <div className="seller-identity">
-            <img src={seller.avatar} alt={seller.name} width="56" height="56" />
-            <div className="seller-identity-copy">
-              <h3>{seller.name}</h3>
-              <span className="seller-since">
-                Membro desde {seller.memberSince}
-              </span>
-            </div>
-          </div>
-          {seller.rating !== undefined && (
-            <div className="seller-rating">
-              <Icon name="star" size={18} />
-              <strong>
-                {seller.rating.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 1,
-                })}
-              </strong>
-              <span>({seller.reviewCount ?? 0} avaliações)</span>
-            </div>
-          )}
-          {seller.testimonial && (
-            <blockquote className="seller-testimonial">
-              “{seller.testimonial}”
-            </blockquote>
-          )}
-          <p>{sellerInventory.length} anúncios disponíveis na comunidade.</p>
-          <button
-            className="primary-button product-action-submit"
-            onClick={() => onExploreSeller(seller.id)}
-          >
-            Ver anúncios de {seller.name.split(" ")[0]}
-            <Icon name="arrow-right" size={17} />
-          </button>
         </ProductActionDialog>
       )}
       {action === "report" && (

@@ -26,6 +26,30 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class PublicProfileSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+    member_since = serializers.DateTimeField(source="date_joined", read_only=True)
+    active_posts = serializers.IntegerField(read_only=True)
+    campuses = serializers.SerializerMethodField()
+
+    def get_avatar(self, user):
+        return user.avatar.url if user.avatar else None
+
+    def get_campuses(self, user):
+        locations = user.posts.filter(status="active", campus__is_active=True).values(
+            "campus__id", "campus__name", "campus__city", "campus__state",
+        ).order_by("campus__name").distinct()
+        return [
+            {"id": str(row["campus__id"]), "name": row["campus__name"], "city": row["campus__city"], "state": row["campus__state"]}
+            for row in locations
+        ]
+
+    class Meta:
+        model = User
+        fields = ("id", "name", "avatar", "member_since", "active_posts", "campuses")
+        read_only_fields = fields
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, trim_whitespace=False)
     password_confirmation = serializers.CharField(

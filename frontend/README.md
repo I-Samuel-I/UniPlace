@@ -58,6 +58,7 @@ No Docker, `API_TARGET=http://backend:8000` faz a mesma integração.
 - `/`: anúncios ativos, novidades e categorias.
 - `/explorar`: busca, filtros, ordenação e ofertas por vendedor.
 - `/anuncios/:uuid`: fotos, dados do produto, vendedor, favoritos, conversa e denúncia.
+- `/perfil/:id`: anúncios ativos do estudante com busca, categorias, tipo e ordenação; dados públicos na lateral direita, acima dos anúncios em telas menores. Acessível pelo chat e pelo anúncio.
 - `/meus-anuncios`: criação com foto, edição, pausa, reativação, venda e exclusão.
   Publicações só são confirmadas após a API aceitar a mudança de status.
   Uma falha no envio da foto ou na publicação mantém o rascunho para retomar.

@@ -307,7 +307,8 @@
   background: white;
   box-shadow: 0 9px 30px #15223b16;
 }
-.chat-thread-menu button {
+.chat-thread-menu button,
+.chat-thread-menu a {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -319,7 +320,8 @@
   text-align: left;
   min-height: var(--control-height);
 }
-.chat-thread-menu button:hover {
+.chat-thread-menu button:hover,
+.chat-thread-menu a:hover {
   background: #fff2eb;
   color: var(--orange-deep);
 }
@@ -744,10 +746,19 @@
   background: #d4dbe6;
   transform: none;
 }
-.chat-contact-toggle,
-.chat-contact-close,
+.chat-thread-header > .chat-contact-toggle,
+.chat-contact-panel > .chat-contact-close,
 .chat-contact-backdrop {
   display: none;
+}
+.chat-view-profile {
+  margin-top: 18px;
+  padding: 12px;
+  border-color: #ffc4aa;
+  background: #fff7f1;
+  color: var(--orange-deep);
+  font-weight: 650;
+  text-align: center;
 }
 .chat-dialog {
   width: min(430px, calc(100vw - 36px));
@@ -876,7 +887,7 @@
   .chat-open {
     grid-template-columns: minmax(0, 1fr);
   }
-  .chat-contact-toggle {
+  .chat-thread-header > .chat-contact-toggle {
     display: grid;
     margin-left: auto;
   }
@@ -897,7 +908,7 @@
     padding: 46px 22px 25px;
     box-shadow: 0 15px 70px #14203830;
   }
-  .chat-contact-close {
+  .chat-contact-panel > .chat-contact-close {
     display: grid;
     position: absolute;
     right: 10px;

@@ -451,6 +451,7 @@ Todas exigem autenticação JWT, exceto a verificação de saúde.
 | --- | --- | --- |
 | GET | `/api/health/` | Saúde do backend e do banco |
 | GET/PATCH | `/api/me/` | Consultar perfil e atualizar nome; e-mail não é alterado |
+| GET | `/api/profiles/{user_id}/` | Perfil público de um estudante ativo; exige autenticação e retorna nome, foto, data de entrada, quantidade de anúncios ativos e campi desses anúncios, sem e-mail ou dados privados |
 | GET | `/api/me/favorites/` | UUIDs de favoritos acessíveis da conta |
 | PUT/DELETE | `/api/me/favorites/{post_uuid}/` | Adicionar/remover favorito de forma idempotente |
 | GET/POST | `/api/conversations/` | Listar conversas próprias/iniciar conversa por `post_id` |

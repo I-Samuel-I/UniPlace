@@ -4,7 +4,7 @@ import type { Product } from "../data/catalog";
 import type { ChatMessage, Conversation } from "../data/chat";
 import { Icon } from "../components/Icon";
 import { formatPrice } from "../components/ProductCard";
-import { followLink, productPath } from "../lib/navigation";
+import { followLink, productPath, profilePath } from "../lib/navigation";
 import "./chat.css";
 import { RequestForm } from '../components/RequestForm';
 
@@ -22,6 +22,7 @@ type ChatPageProps = {
   onMarkRead: (id: string) => void;
   onToggleFavorite: (id: string) => void;
   onSelectProduct: (product: Product) => void;
+  onOpenProfile: (id: string) => void;
   onNotify: (message: string) => void;
 };
 
@@ -90,6 +91,7 @@ export function ChatPage({
   onMarkRead,
   onToggleFavorite,
   onSelectProduct,
+  onOpenProfile,
   onNotify,
 }: ChatPageProps) {
   const [search, setSearch] = useState("");
@@ -101,7 +103,7 @@ export function ChatPage({
   const [fileError, setFileError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [showContact, setShowContact] = useState(false);
-  const [dialog, setDialog] = useState<"profile" | "report" | null>(null);
+  const [dialog, setDialog] = useState<"report" | null>(null);
   const historyRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -412,9 +414,11 @@ export function ChatPage({
           >
             <Icon name="arrow-left" size={19} />
           </button>
-          <button
+          <a
             className="chat-thread-person"
-            onClick={() => setDialog("profile")}
+            href={profilePath(contact.id)}
+            onClick={event => followLink(event, () => onOpenProfile(contact.id))}
+            aria-label={`Ver perfil de ${contact.name}`}
           >
             <img src={contact.avatar} alt="" width="37" height="37" />
             <span>
@@ -426,7 +430,7 @@ export function ChatPage({
                 {contact.online ? "Online" : "Presença não informada"}
               </span>
             </span>
-          </button>
+          </a>
           <button
             className="chat-contact-toggle icon-button"
             aria-label="Ver informações do contato"
@@ -457,15 +461,13 @@ export function ChatPage({
                     ? "Remover dos favoritos"
                     : "Favoritar conversa"}
                 </button>
-                <button
-                  onClick={() => {
-                    setDialog("profile");
-                    setMenuOpen(false);
-                  }}
+                <a
+                  href={profilePath(contact.id)}
+                  onClick={event => followLink(event, () => onOpenProfile(contact.id))}
                 >
                   <Icon name="user" size={16} />
                   Ver perfil do contato
-                </button>
+                </a>
                 <button
                   onClick={() => {
                     setDialog("report");
@@ -680,13 +682,14 @@ export function ChatPage({
             <span>({contact.reviewCount ?? 0} avaliações)</span>
           </div>
         )}
-        <button
-          className="chat-outline-button"
-          onClick={() => setDialog("profile")}
+        <a
+          className="chat-outline-button chat-view-profile"
+          href={profilePath(contact.id)}
+          onClick={event => followLink(event, () => onOpenProfile(contact.id))}
         >
           <Icon name="user" size={15} />
           Ver perfil completo
-        </button>
+        </a>
         <section className="chat-contact-about">
           <h3>Sobre o contato</h3>
           {contact.email && (
@@ -751,71 +754,6 @@ export function ChatPage({
         </section>
       </aside>
 
-      {dialog === "profile" && (
-        <ChatDialog title="Perfil do contato" onClose={() => setDialog(null)}>
-          <div className="chat-contact-identity">
-            <img
-              src={contact.avatar}
-              alt={contact.name}
-              width="52"
-              height="52"
-            />
-            <div>
-              <h3>{contact.name}</h3>
-              <span
-                className={`chat-presence${contact.online ? " is-online" : ""}`}
-              >
-                <i />
-                {contact.online ? "Online" : "Presença não informada"}
-              </span>
-            </div>
-          </div>
-          {contact.rating !== undefined && (
-            <div className="chat-contact-rating">
-              <Icon name="star" size={15} />
-              <strong>
-                {contact.rating.toLocaleString("pt-BR", {
-                  minimumFractionDigits: 1,
-                })}
-              </strong>
-              <span>({contact.reviewCount ?? 0} avaliações)</span>
-            </div>
-          )}
-          <div className="chat-contact-about">
-            {contact.email && (
-              <p>
-                <Icon name="mail" size={16} />
-                <span>{contact.email}</span>
-              </p>
-            )}
-            <p>
-              <Icon name="package" size={16} />
-              <span>{contact.institution}</span>
-            </p>
-            <p>
-              <Icon name="calendar" size={16} />
-              <span>Entrou em {contact.memberSince}</span>
-            </p>
-          </div>
-          <button
-            className="primary-button chat-dialog-submit"
-            onClick={() => {
-              onToggleFavorite(conversation.id);
-              setDialog(null);
-              onNotify(
-                conversation.favorite
-                  ? "Conversa removida dos favoritos."
-                  : "Conversa salva nos favoritos.",
-              );
-            }}
-          >
-            <Icon name="heart" size={17} />
-            {conversation.favorite
-              ? "Remover dos favoritos"
-              : "Favoritar conversa"}
-          </button>
-        </ChatDialog>
-      )}
       {dialog === "report" && (
         <ChatDialog title="Denunciar usuário" onClose={() => setDialog(null)}>
           <RequestForm kind="report" conversationId={conversation.id} onSuccess={() => { setDialog(null); onNotify('Denúncia registrada. Acompanhe em Ajuda e Suporte.'); }} />
