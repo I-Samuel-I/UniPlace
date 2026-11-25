@@ -186,6 +186,20 @@ class MarketplaceTests(APITestCase):
         self.assertEqual(post.published_at, published_at)
         self.assertEqual(post.updated_by, self.user)
 
+    def test_published_photo_listing_is_visible_without_optional_filters(self):
+        response = self.client.post('/api/posts/', self.post_data(accepts_trade=True, accepts_negotiation=True), format='json')
+        post = Post.objects.get(id=response.data['id'])
+        self.assertEqual(self.upload(post).status_code, 201)
+        self.assertEqual(self.publish(post).status_code, 200)
+        for path in ('/api/posts/', '/api/posts/?page_size=100&page=1', '/api/me/posts/?page_size=100&page=1'):
+            with self.subTest(path=path):
+                result = self.client.get(path)
+                self.assertEqual(result.status_code, 200)
+                self.assertIn(str(post.id), [str(item['id']) for item in result.data['results']])
+        self.assertEqual(self.client.get('/api/posts/?has_photos=false').data['count'], 0)
+        self.assertEqual(self.client.get('/api/posts/?accepts_trade=false').data['count'], 0)
+        self.assertEqual(self.client.get('/api/posts/?has_photos=true&accepts_trade=true').data['count'], 1)
+
     def test_incomplete_draft_cannot_be_published(self):
         post = self.make_post(title="", content="", category=None, price=None, campus=None, pickup_location=None, condition="")
         response = self.publish(post)

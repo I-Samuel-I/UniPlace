@@ -7,6 +7,7 @@ from accounts.serializers import (
     PasswordChangeSerializer,
     RegisterSerializer,
     UserSerializer,
+    ProfileSerializer,
 )
 
 
@@ -34,3 +35,11 @@ class PasswordChangeView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"detail": "Senha alterada com sucesso."})
+
+
+class ProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = ProfileSerializer
+    http_method_names = ('get', 'patch', 'head', 'options')
+
+    def get_object(self):
+        return self.request.user

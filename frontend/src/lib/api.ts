@@ -74,6 +74,14 @@ export function subscribeSession(listener: () => void) {
   };
 }
 
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('storage', event => {
+    if (event.key !== SESSION_KEY && event.key !== null) return;
+    session = readSession();
+    listeners.forEach(listener => listener());
+  });
+}
+
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
@@ -188,12 +196,17 @@ export async function api<T>(
   options: RequestOptions = {},
 ): Promise<T> {
   const useAuth = options.auth !== false;
+  let requestingSession = session;
   let response: Response;
   try {
     response = await send(path, options, useAuth ? session?.access : undefined);
-    if (response.status === 401 && useAuth && session) {
-      const access = await refreshAccess();
-      if (access) response = await send(path, options, access);
+    if (response.status === 401 && useAuth && session && requestingSession && session.user.id === requestingSession.user.id && session.refresh === requestingSession.refresh) {
+      // Another parallel request may already have renewed this same session.
+      const access = session.access !== requestingSession.access ? session.access : await refreshAccess();
+      if (access) {
+        requestingSession = session;
+        response = await send(path, options, access);
+      }
     }
   } catch {
     throw new ApiError(
@@ -202,7 +215,7 @@ export async function api<T>(
     );
   }
   if (response.status === 401 && useAuth) {
-    setSession(null);
+    if (session === requestingSession) setSession(null);
     throw new ApiError(401, "Sua sessão expirou. Entre novamente.");
   }
   if (response.status === 204) return undefined as T;

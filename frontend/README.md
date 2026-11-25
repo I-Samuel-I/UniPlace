@@ -1,97 +1,92 @@
 # UniPlace — Frontend
 
-Interface em React, TypeScript e Vite baseada nas referências das telas inicial, exploração de anúncios, detalhes do produto, Meus Anúncios e chat.
+React, TypeScript e Vite integrados à API Django. O catálogo, os anúncios pessoais,
+favoritos, conversas, notificações, perfil e chamados são persistidos no backend.
+Não há contas nem conversas de demonstração na interface autenticada.
 
-## Executar
+## Ambiente completo com Docker
 
-Requer Node.js 20.19+ ou 22.12+ e npm.
+Na pasta `backend`, com o `.env` configurado:
 
-```powershell
+```bash
+docker compose up -d --build --wait
+```
+
+- Frontend: http://localhost:5173
+- API e saúde: http://localhost:8000/api/health/
+- Administração de chamados e cadastros: http://localhost:8000/admin/
+
+Crie sua conta em **Cadastre-se**, com e-mail de um curso, como
+`nome@ads.fiponline.edu.br`. A administração exige uma conta de administrador.
+Os containers usam recarregamento automático do código. PostgreSQL usa volume
+persistente; fotos ficam em `backend/media`, compartilhada com o container.
+
+```bash
+cd backend
+docker compose ps
+docker compose logs -f backend frontend
+docker compose restart backend frontend
+```
+
+Não use `docker compose down -v` se quiser manter o banco.
+
+## Desenvolvimento sem containers para o código
+
+Node.js 20.19+ ou 22.12+, Python 3.12 e dependências de `../backend/requirements.txt`:
+
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Abra o endereço exibido pelo Vite, normalmente `http://127.0.0.1:5173`.
+Em outro terminal:
 
-O front depende da API Django. Em outro terminal, na pasta `backend`, com
-`DJANGO_DEBUG=True` no `.env` (necessário para o Django servir as fotos):
-
-```powershell
-python manage.py migrate
-python manage.py seed_reference_data
-python manage.py runserver
+```bash
+cd backend
+.venv/bin/python manage.py migrate
+.venv/bin/python manage.py seed_reference_data
+.venv/bin/python manage.py runserver
 ```
 
-O Vite repassa `/api` e `/media` para `http://127.0.0.1:8000` (veja
-`vite.config.ts`), então não é preciso configurar CORS em desenvolvimento.
+O Vite encaminha `/api` e `/media` para o Django em `127.0.0.1:8000`.
+No Docker, `API_TARGET=http://backend:8000` faz a mesma integração.
 
-```powershell
+## Recursos
+
+- `/`: anúncios ativos, novidades e categorias.
+- `/explorar`: busca, filtros, ordenação e ofertas por vendedor.
+- `/anuncios/:uuid`: fotos, dados do produto, vendedor, favoritos, conversa e denúncia.
+- `/meus-anuncios`: criação com foto, edição, pausa, reativação, venda e exclusão.
+  Publicações só são confirmadas após a API aceitar a mudança de status.
+  Uma falha no envio da foto ou na publicação mantém o rascunho para retomar.
+- `/favoritos`: favoritos privados por conta, preservados entre navegadores.
+- `/chat` e `/chat/:uuid`: conversas privadas entre comprador e vendedor,
+  histórico persistente, leitura, favoritos da conversa e anexos JPG/PNG/WebP/PDF.
+  As mensagens atualizam a cada cinco segundos e quando a janela recebe foco.
+  A presença online não é monitorada.
+- `/perfil` e `/configuracoes`: nome da conta e alteração de senha.
+- `/suporte`: abertura e acompanhamento de chamados e denúncias; a equipe pode
+  responder e resolver pelo Django Admin. Não há resposta automática nem suporte instantâneo.
+- Notificações de publicação, mensagens e respostas de chamados, com leitura por conta.
+
+Fotos de anúncio: até 5 MB, validadas também no servidor. Anexos de chat: até 2 MB,
+validados por conteúdo e acessíveis somente aos participantes pela API autenticada.
+Os filtros opcionais só são enviados/aplicados quando escolhidos. O catálogo lê
+as páginas da API sem o limite silencioso anterior de 500 itens e se atualiza ao
+receber foco e a cada 30 segundos. Notificações e favoritos sincronizam a cada 10 segundos.
+
+Tokens JWT ficam no navegador e são renovados automaticamente. Os dados pessoais
+não são compartilhados entre contas. Favoritos e mensagens não dependem de localStorage.
+
+## Verificações
+
+```bash
 npm run check
 npm run build
-npm run preview
 ```
 
-O build verifica os tipos TypeScript e gera os arquivos de produção em `dist/`.
-O comando `check` (`scripts/check-render.mjs`) verifica as telas com sessão e
-estados da API simulados, incluindo login obrigatório, carregamento, erros,
-rotas, filtros, favoritos, anúncios e persistência das conversas locais. Também
-verifica o cliente HTTP real com respostas simuladas para login, cadastro,
-renovação e expiração da sessão; não precisa iniciar a API Django.
-O servidor de produção deve direcionar as rotas do front para `index.html`.
-
-## Telas e comportamento
-
-- `/`: início, com carrossel, categorias e anúncios em destaque. O menu marca **Início** como ativo.
-- `/explorar`: catálogo com busca, categorias, faixa de preço, condições, retirada, fotos, negociação, troca, ordenação e visualização em grade ou lista. O menu marca **Explorar Anúncios** como ativo.
-- `/explorar?q=notebook`: busca por título, categoria e descrição, ignorando diferenças de acentuação.
-- `/explorar?categoria=eletronicos`: categoria selecionada a partir da Home.
-- `/favoritos`: anúncios salvos no navegador em `localStorage`.
-- `/anuncios/:id`: página completa de produto, com galeria, informações, vendedor, localização e mais anúncios do mesmo vendedor. O menu mantém **Explorar Anúncios** ativo.
-- `/anuncios/macbook-air-m1-8gb-256gb`: produto de exemplo da nova referência.
-- `/explorar?vendedor=matheus-fontes`: ofertas ativas do vendedor.
-- `/meus-anuncios` e `/perfil`: painel pessoal com busca, filtros por status e categoria, ordenação e ações de criar, editar, excluir, pausar, reativar e marcar como vendido.
-- `/chat`: lista com busca e filtros de conversas não lidas ou favoritas, acompanhada do estado inicial de seleção.
-- `/chat/matheus-freitas`: conversa de exemplo com histórico, compositor de mensagens e painel de contato/produto.
-
-Os cards abrem a página do produto, com URL que pode ser copiada ou aberta em outra aba. A navegação funciona com os botões voltar/avançar do navegador. O menu lateral e os filtros se adaptam a telas menores.
-O anúncio vendido da referência aparece identificado na Home e fica fora do catálogo de ofertas ativas.
-
-A galeria permite selecionar miniaturas e ampliar as fotos; na ampliação, as setas do teclado também trocam a imagem. Compartilhar usa o compartilhamento nativo ou copia o link; quando o navegador não permite esses recursos, exibe o endereço para cópia manual. O perfil abre os dados do vendedor e o mapa abre uma busca em outra aba. Anúncios vendidos não permitem iniciar conversa.
-
-O menu do avatar abre o painel pessoal. Meus Anúncios começa com seis exemplos: cinco ativos e um expirado. Alterar título, preço, foto ou status também atualiza o catálogo e os detalhes. A exclusão exige confirmação e retira o item do catálogo e dos favoritos; o histórico de conversa permanece, identificando o anúncio como indisponível. Fotos locais aceitam JPEG, PNG e WebP até 2 MB, com validação de formato e decodificação.
-
-O botão de conversar no produto abre o chat correspondente; nos próprios anúncios, abre uma conversa existente com um comprador. Conversas próprias sem interessados não criam um chat consigo mesmo. O chat permite mensagens locais, anexos JPEG/PNG/WebP/PDF de até 2 MB, favoritos e leitura de mensagens. Enter salva uma mensagem; Shift+Enter insere uma quebra de linha. Não há respostas automáticas nem confirmação real de entrega/leitura.
-
-## Integração com a API
-
-- **Acesso:** sem sessão, o app mostra a tela de login e cadastro
-  (`src/pages/AuthPage.tsx`). Os tokens JWT ficam em `localStorage`; o token de
-  acesso é renovado automaticamente e, se a renovação falhar, o usuário volta ao login.
-- **Cliente HTTP:** `src/lib/api.ts` (requisições, renovação do token e mensagens
-  de erro) e `src/data/session.ts` (entrar, cadastrar, sair).
-- **Anúncios:** `src/data/marketplace.ts` carrega o catálogo de anúncios ativos
-  (`/api/posts/`), os anúncios do usuário (`/api/me/posts/`), categorias, campi e
-  locais de retirada, e converte as respostas para o formato usado pelas telas.
-  A busca e os filtros continuam sendo aplicados no navegador sobre até 500
-  anúncios; os filtros equivalentes da API podem substituí-los quando o volume crescer.
-- **Meus Anúncios:** criar, editar, publicar, pausar, reativar, marcar como
-  vendido e excluir chamam a API. Publicar cria o rascunho, envia a foto e ativa o
-  anúncio; se uma etapa falhar, o anúncio fica salvo como rascunho. O formulário
-  envia uma foto por vez (a nova vira a capa); a API aceita até 12 por anúncio.
-- **Categorias:** as telas agrupam os anúncios pelo `slug` da categoria principal.
-  Os atalhos da Home e os grupos de Explorar (`src/data/catalog.ts`) esperam os
-  slugs criados por `seed_reference_data` (`eletronicos`, `livros`, `moveis`...).
-
-## O que ainda é local
-
-- **Chat:** as conversas continuam de exemplo e salvas só neste navegador
-  (`src/data/chat.ts`). Nenhuma mensagem chega a outra pessoa.
-- **Favoritos:** salvos em `localStorage`, sem sincronização com a conta.
-- **Notificações, denúncias, configurações e suporte:** exibem avisos fixos.
-- **Avaliações e presença do vendedor:** não existem na API e por isso não
-  aparecem nos anúncios reais.
-- **Perfil:** `/perfil` abre Meus Anúncios; ainda não há edição de dados pessoais.
-
-Os produtos de `src/data/catalog.ts` e os detalhes de `src/data/productDetails.ts`
-são dados de demonstração usados apenas pelas conversas de exemplo.
+`check` renderiza os componentes reais com fixtures exclusivas de testes e verifica
+rotas, filtros, anúncios, autenticação, erros e concorrência na renovação de sessão.
+`build` verifica os tipos e gera `dist`. Em hospedagem estática, as rotas do frontend
+precisam retornar `index.html`; a API e a mídia precisam continuar encaminhadas ao Django.

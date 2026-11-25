@@ -11,6 +11,7 @@ import { Icon } from "../components/Icon";
 import { ProductCard, formatPrice } from "../components/ProductCard";
 import { followLink, productPath } from "../lib/navigation";
 import "./product.css";
+import { RequestForm } from '../components/RequestForm';
 
 type ProductPageProps = {
   product: Product;
@@ -529,17 +530,7 @@ export function ProductPage({
           title="Denunciar anúncio"
           onClose={() => setAction(null)}
         >
-          <p>O envio de denúncias ainda não está disponível nesta versão.</p>
-          <p>
-            Se uma oferta parecer suspeita, evite pagamentos antecipados e
-            combine a conferência do produto em um local público do campus.
-          </p>
-          <button
-            className="primary-button product-action-submit"
-            onClick={() => setAction(null)}
-          >
-            Entendi
-          </button>
+          <RequestForm kind="report" postId={product.id} onSuccess={() => { setAction(null); onNotify('Denúncia registrada. Acompanhe em Ajuda e Suporte.'); }} />
         </ProductActionDialog>
       )}
       {action === "support" && (
@@ -552,13 +543,7 @@ export function ProductPage({
             público do campus. Verifique o estado do item antes de concluir a
             compra.
           </p>
-          <p>O chat de suporte ainda não está disponível nesta versão.</p>
-          <button
-            className="primary-button product-action-submit"
-            onClick={() => setAction(null)}
-          >
-            Voltar ao anúncio
-          </button>
+          <RequestForm kind="support" postId={product.id} onSuccess={() => { setAction(null); onNotify('Chamado registrado. Acompanhe em Ajuda e Suporte.'); }} />
         </ProductActionDialog>
       )}
       {action === "share" && (

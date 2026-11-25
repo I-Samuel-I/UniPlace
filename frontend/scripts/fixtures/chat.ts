@@ -1,0 +1,195 @@
+import type { ChatMessage, Conversation } from "../../src/data/chat";
+
+const fixtureMessage = (
+  id: string,
+  sender: ChatMessage["sender"],
+  text: string,
+  time: string,
+  day = "2026-11-11",
+): ChatMessage => ({ id, sender, text, createdAt: `${day}T${time}:00-03:00` });
+const firstMessages: ChatMessage[] = [
+  fixtureMessage(
+    "matheus-1",
+    "contact",
+    "Olá! Ainda está disponível o notebook?",
+    "10:12",
+  ),
+  fixtureMessage(
+    "matheus-2",
+    "me",
+    "Sim! Ainda está disponível. É só me chamar por aqui que combinamos.",
+    "10:16",
+  ),
+  fixtureMessage(
+    "matheus-3",
+    "contact",
+    "Qual o menor valor que você aceita?",
+    "10:17",
+  ),
+  fixtureMessage(
+    "matheus-4",
+    "me",
+    "Eu consigo fazer por R$ 2.500,00. Está em ótimo estado, só estou vendendo porque vou mudar de campus.",
+    "10:20",
+  ),
+  fixtureMessage(
+    "matheus-5",
+    "contact",
+    "Show! Consigo pegar ainda hoje. Você aceita PIX?",
+    "10:22",
+  ),
+  fixtureMessage(
+    "matheus-6",
+    "me",
+    "Sim! Pode ser via PIX. Se quiser, posso te enviar mais fotos por aqui para combinarmos.",
+    "10:24",
+  ),
+];
+
+const contacts = [
+  {
+    id: "matheus-freitas",
+    name: "Matheus Freitas",
+    avatar: "/images/seller-lucas.jpg",
+    online: true,
+    productId: "macbook-air-m1-8gb-256gb",
+    unread: 2,
+    favorite: false,
+    preview: "Ainda está disponível?",
+    time: "10:24",
+    day: "2026-11-11",
+  },
+  {
+    id: "camila-santos",
+    name: "Camila Santos",
+    avatar: "/images/seller-lucas.jpg",
+    online: true,
+    productId: "iphone-13-128gb",
+    unread: 1,
+    favorite: true,
+    preview: "Blz, vou te chamar aqui!",
+    time: "09:47",
+    day: "2026-11-11",
+  },
+  {
+    id: "lucas-oliveira",
+    sellerId: "lucas-almeida",
+    name: "Lucas Almeida",
+    avatar: "/images/seller-lucas.jpg",
+    online: false,
+    productId: "notebook-acer-aspire-5",
+    unread: 0,
+    favorite: false,
+    preview: "Consegui pegar aqui, valeu!",
+    time: "17:30",
+    day: "2026-11-10",
+  },
+  {
+    id: "ana-clara",
+    name: "Ana Clara",
+    avatar: "/images/seller-lucas.jpg",
+    online: false,
+    productId: "cadeira-escritorio",
+    unread: 0,
+    favorite: false,
+    preview: "Pode ser sim! Qual o horário?",
+    time: "15:20",
+    day: "2026-11-10",
+  },
+  {
+    id: "gabriel-lima",
+    name: "Gabriel Lima",
+    avatar: "/images/seller-matheus.jpg",
+    online: false,
+    productId: "mochila-nike",
+    unread: 1,
+    favorite: false,
+    preview: "Opa, ainda está disponível?",
+    time: "16:12",
+    day: "2026-11-07",
+  },
+  {
+    id: "julia-martins",
+    name: "Júlia Martins",
+    avatar: "/images/seller-lucas.jpg",
+    online: false,
+    productId: "guyton-fisiologia",
+    unread: 0,
+    favorite: true,
+    preview: "Perfeito, obrigado!",
+    time: "11:15",
+    day: "2026-11-07",
+  },
+  {
+    id: "rafael-costa",
+    name: "Rafael Costa",
+    avatar: "/images/seller-matheus.jpg",
+    online: false,
+    productId: "ipad-9-geracao",
+    unread: 0,
+    favorite: false,
+    preview: "Boa tarde! Qual o valor mínimo?",
+    time: "14:30",
+    day: "2026-11-06",
+  },
+  {
+    id: "fernanda-alves",
+    name: "Fernanda Alves",
+    avatar: "/images/seller-lucas.jpg",
+    online: false,
+    productId: "monitor-dell-24",
+    unread: 0,
+    favorite: false,
+    preview: "Ok, vou verificar aqui",
+    time: "10:20",
+    day: "2026-11-06",
+  },
+  {
+    id: "thiago-pereira",
+    name: "Thiago Pereira",
+    avatar: "/images/seller-matheus.jpg",
+    online: false,
+    productId: "controle-ps5",
+    unread: 0,
+    favorite: false,
+    preview: "Pode me mandar mais fotos?",
+    time: "13:45",
+    day: "2026-11-05",
+  },
+];
+
+// These are local examples. No message is sent to another person.
+export const initialConversations: Conversation[] = contacts.map((person) => {
+  const messages =
+    person.id === "matheus-freitas"
+      ? firstMessages
+      : [
+          fixtureMessage(
+            `${person.id}-1`,
+            "contact",
+            person.preview,
+            person.time,
+            person.day,
+          ),
+        ];
+  return {
+    id: person.id,
+    contact: {
+      id: person.sellerId ?? person.id,
+      name: person.name,
+      avatar: person.avatar,
+      online: person.online,
+      email: `${(person.sellerId ?? person.id).split("-")[0]}@alunos.unifip.edu.br`,
+      institution: "UNIFIP",
+      memberSince: "2025",
+      rating: person.id === "matheus-freitas" ? 4.8 : 4.9,
+      reviewCount: person.id === "matheus-freitas" ? 24 : 12,
+    },
+    productId: person.productId,
+    messages,
+    unread: person.unread,
+    favorite: person.favorite,
+    updatedAt: messages[messages.length - 1].createdAt,
+  };
+});
+

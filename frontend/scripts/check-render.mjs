@@ -34,6 +34,12 @@ const server = await createServer({
           `${declaration}\nreturn globalThis.${fixtureKey}.market;`,
         );
       }
+      if (id.endsWith('/src/data/chat.ts')) {
+        return source.replace('export function useChat(userId: number | null) {', `export function useChat(userId: number | null) {\nreturn globalThis.${fixtureKey}.chat;`);
+      }
+      if (id.endsWith('/src/data/community.ts')) {
+        return source.replace('export function useCommunity(userId: number | null) {', `export function useCommunity(userId: number | null) {\nreturn globalThis.${fixtureKey}.community;`);
+      }
     },
   }],
 });
@@ -42,8 +48,7 @@ try {
   const { default: App } = await server.ssrLoadModule("/src/App.tsx");
   const { products } = await server.ssrLoadModule("/src/data/catalog.ts");
   const { getProductSeller } = await server.ssrLoadModule("/src/data/productDetails.ts");
-  const { CHAT_STORAGE_KEY, initialConversations } =
-    await server.ssrLoadModule("/src/data/chat.ts");
+  const { initialConversations } = await server.ssrLoadModule('/scripts/fixtures/chat.ts');
   const session = {
     access: "check-access", refresh: "check-refresh",
     user: { id: 1, name: "Aluno de teste", email: "aluno@ads.fiponline.edu.br" },
@@ -78,6 +83,15 @@ try {
     }
     globalThis[fixtureKey] = {
       session: Object.hasOwn(options, "session") ? options.session : session,
+      chat: {
+        conversations: options.conversations ?? initialConversations,
+        loaded: true, storageError: null,
+        reload: async () => {}, markRead: async () => {}, sendMessage: async () => {}, toggleFavorite: async () => {}, startConversation: async () => '',
+      },
+      community: {
+        favorites: options.favorites ?? [], notices: { results: [], unread: 0 }, error: '',
+        reload: async () => {}, toggleFavorite: async () => {}, markNoticesRead: async () => {},
+      },
       market: {
         catalog, myPosts: ownPosts, reference, loaded: true, error: null,
         reload: async () => {}, savePost: async () => {},
@@ -158,7 +172,8 @@ try {
   assert.ok(managed.includes("Todos <span>(6)</span>"));
   assert.ok(managed.includes("Ativos <span>(5)</span>"));
   assert.ok(managed.includes("Expirados <span>(1)</span>"));
-  assert.ok(render("/perfil").includes('<div class="my-posts-page">'));
+  assert.ok(render("/perfil").includes('Meu perfil e configurações'));
+  assert.ok(render('/suporte').includes('Abrir chamado'));
 
   // Server updates replace the old account-localStorage demonstrations.
   const changed = ownPosts.map((post) => post.id === "macbook-air-m1-8gb-256gb"
@@ -192,17 +207,16 @@ try {
     id: "local-message-test", sender: "me", text: "Podemos combinar na biblioteca?",
     createdAt: "2026-11-11T14:00:00-03:00",
   };
-  const savedThread = render("/chat/matheus-freitas", { storage: {
-    [CHAT_STORAGE_KEY]: {
-      version: 1,
+  const savedThread = render("/chat/matheus-freitas", {
       conversations: initialConversations.map((conversation) => conversation.id === "matheus-freitas"
         ? { ...conversation, messages: [...conversation.messages, extraMessage], unread: 0 }
         : conversation),
-    },
-  } });
+  });
   assert.ok(savedThread.includes(extraMessage.text));
   assert.equal((savedThread.match(/class="chat-message-entry"/g) ?? []).length, 7);
-  assert.ok(render("/chat", { storage: { [CHAT_STORAGE_KEY]: "{bad-json" } }).includes("Selecione uma conversa"));
+  const noConversations = render('/chat', { conversations: [] });
+  assert.ok(!noConversations.includes('class="chat-conversation-row"'));
+  assert.ok(!noConversations.includes('Matheus Freitas'));
 
   // Exercise the real HTTP/session modules, including failures and token renewal.
   const { api, ApiError, getSession, setSession } = await server.ssrLoadModule("/src/lib/api.ts");
@@ -246,6 +260,34 @@ try {
   assert.equal(getSession(), null);
   assert.equal(localStorage.getItem("uniplace:session:v1"), null);
   assert.equal(responses.length, 0);
+  // A late 401 after another request refreshed must retry with the renewed token.
+  setSession(session);
+  let releaseLate;
+  let refreshCalls = 0;
+  globalThis.fetch = async (url, options) => {
+    if (url === '/api/posts/late' && options.headers.Authorization === `Bearer ${session.access}`)
+      return new Promise(resolve => { releaseLate = resolve; });
+    if (url === '/api/auth/refresh/') { refreshCalls++; return new Response(JSON.stringify({ access: 'parallel-renewed' })); }
+    if (options.headers.Authorization === `Bearer ${session.access}`) return new Response('{}', { status: 401 });
+    return new Response('[]');
+  };
+  const firstRequest = api('/posts/first');
+  const lateRequest = api('/posts/late');
+  await firstRequest;
+  releaseLate(new Response('{}', { status: 401 }));
+  await lateRequest;
+  assert.equal(refreshCalls, 1);
+  // A slow 401 from an old login must not renew or clear a newer account.
+  setSession(session);
+  let release;
+  globalThis.fetch = () => new Promise(resolve => { release = resolve; });
+  const oldRequest = api('/posts/');
+  const nextSession = { ...session, access: 'other-access', refresh: 'other-refresh', user: { ...session.user, id: 2 } };
+  setSession(nextSession);
+  release(new Response('{}', { status: 401 }));
+  await assert.rejects(oldRequest, error => error instanceof ApiError && error.status === 401);
+  assert.deepEqual(getSession(), nextSession);
+  logout();
   console.log("Verificações passaram: autenticação e API, renovação de sessão, telas, filtros, favoritos, anúncios, chat e estados inválidos.");
 } finally {
   await server.close();

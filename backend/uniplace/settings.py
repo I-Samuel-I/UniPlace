@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "accounts",
     "posts",
     "commons",
+    "community",
 ]
 
 MIDDLEWARE = [
@@ -105,6 +106,7 @@ STATIC_URL = "static/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+DATA_UPLOAD_MAX_MEMORY_SIZE = 4 * 1024 * 1024
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [

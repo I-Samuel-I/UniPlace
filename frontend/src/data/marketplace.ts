@@ -5,7 +5,6 @@ import type { Product } from "./catalog";
 
 export const PLACEHOLDER_IMAGE = "/images/sem-foto.svg";
 const PAGE_SIZE = 100;
-const MAX_PAGES = 5;
 
 type ApiImage = {
   id: string;
@@ -168,17 +167,18 @@ function toManagedPost(post: ApiPost, groups: Map<string, string>): ManagedPost 
 
 async function fetchAll(path: string) {
   const posts: ApiPost[] = [];
-  for (let page = 1; page <= MAX_PAGES; page += 1) {
+  for (let page = 1; ; page += 1) {
     const data = await api<Page<ApiPost>>(
       `${path}?page_size=${PAGE_SIZE}&page=${page}`,
     );
     posts.push(...data.results);
     if (!data.next) break;
   }
-  return posts;
+  return [...new Map(posts.map((post) => [post.id, post])).values()];
 }
 
 type MarketplaceState = {
+  userId: number | null;
   catalog: Product[];
   myPosts: ManagedPost[];
   reference: ReferenceData;
@@ -187,6 +187,7 @@ type MarketplaceState = {
 };
 
 const emptyState: MarketplaceState = {
+  userId: null,
   catalog: [],
   myPosts: [],
   reference: { categories: [], campuses: [], pickupLocations: [] },
@@ -218,6 +219,7 @@ export function useMarketplace(userId: number | null) {
       if (request !== requestRef.current) return;
       const groups = categoryGroups(categories);
       setState({
+        userId,
         catalog: catalog.map((post) => toManagedPost(post, groups)),
         myPosts: mine.map((post) => toManagedPost(post, groups)),
         reference: { categories, campuses, pickupLocations },
@@ -228,6 +230,7 @@ export function useMarketplace(userId: number | null) {
       if (request !== requestRef.current) return;
       setState((previous) => ({
         ...previous,
+        userId,
         error: errorMessage(error, "Não foi possível carregar os anúncios."),
       }));
     }
@@ -236,6 +239,14 @@ export function useMarketplace(userId: number | null) {
   useEffect(() => {
     setState(emptyState);
     void load();
+    const refresh = () => { if (document.visibilityState === 'visible') void load(); };
+    const timer = window.setInterval(refresh, 30_000);
+    window.addEventListener('focus', refresh);
+    return () => {
+      requestRef.current += 1;
+      clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+    };
   }, [load]);
 
   const savePost = useCallback(
@@ -314,5 +325,5 @@ export function useMarketplace(userId: number | null) {
     [load],
   );
 
-  return { ...state, reload: load, savePost, setPostStatus, deletePost };
+  return { ...(state.userId === userId ? state : emptyState), reload: load, savePost, setPostStatus, deletePost };
 }

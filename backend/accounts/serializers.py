@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -25,6 +27,14 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ("id", "name", "email", "password", "password_confirmation")
         read_only_fields = ("id",)
+
+    def to_internal_value(self, data):
+        if not isinstance(data, Mapping):
+            return super().to_internal_value(data)
+        data = data.copy()
+        if isinstance(data.get('email'), str):
+            data['email'] = data['email'].strip().lower()
+        return super().to_internal_value(data)
 
     def validate_name(self, value):
         value = value.strip()
@@ -69,9 +79,23 @@ class LoginSerializer(TokenObtainPairSerializer):
     username_field = User.USERNAME_FIELD
 
     def validate(self, attrs):
+        attrs[self.username_field] = attrs[self.username_field].strip().lower()
         data = super().validate(attrs)
         data["user"] = UserSerializer(self.user).data
         return data
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'name', 'email', 'date_joined')
+        read_only_fields = ('id', 'email', 'date_joined')
+
+    def validate_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('O nome é obrigatório.')
+        return value
 
 
 class PasswordChangeSerializer(serializers.Serializer):

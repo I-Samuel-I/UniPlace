@@ -350,3 +350,65 @@ envie fotos pela API antes de ativá-los. Destaques podem ser definidos no paine
 
 Antes de publicar, defina `DJANGO_SECRET_KEY` forte, `DJANGO_DEBUG=False` e
 `DJANGO_ALLOWED_HOSTS` no ambiente.
+
+
+## Integração completa e Docker (Linux)
+
+O Compose também inicia o backend Django e o frontend Vite com recarregamento
+no desenvolvimento. Crie `.env` a partir de `.env.example` sem substituir um
+arquivo local existente. Execute na pasta `backend`:
+
+```bash
+docker compose up -d --build --wait
+docker compose ps
+docker compose logs -f backend frontend
+```
+
+O banco é persistente no volume já existente, as fotos ficam em `backend/media`
+e as migrações/dados de referência rodam ao iniciar o backend. O frontend abre
+em http://localhost:5173 e `/api/health/` verifica a conexão com o banco.
+A configuração local desta máquina usa PostgreSQL 16 na porta 5433 via override;
+o Compose compartilhado continua com PostgreSQL 17 por padrão. Nunca troque a
+versão principal de um volume PostgreSQL existente sem migrar seus dados.
+
+Opcionalmente, `.docker-wheels/` pode conter wheels das dependências testadas
+para Python 3.12/Linux: o Dockerfile os instala sem rede quando presentes.
+Esse cache é local e ignorado pelo Git; sem ele, a imagem instala `requirements.txt`.
+
+### APIs da conta e comunidade
+
+Todas exigem autenticação JWT, exceto a verificação de saúde.
+
+| Método | Rota | Função |
+| --- | --- | --- |
+| GET | `/api/health/` | Saúde do backend e do banco |
+| GET/PATCH | `/api/me/` | Consultar perfil e atualizar nome; e-mail não é alterado |
+| GET | `/api/me/favorites/` | UUIDs de favoritos acessíveis da conta |
+| PUT/DELETE | `/api/me/favorites/{post_uuid}/` | Adicionar/remover favorito de forma idempotente |
+| GET/POST | `/api/conversations/` | Listar conversas próprias/iniciar conversa por `post_id` |
+| POST | `/api/conversations/{uuid}/messages/` | Enviar texto e/ou anexo privado |
+| POST | `/api/conversations/{uuid}/read/` | Confirmar leitura das mensagens recebidas |
+| PATCH | `/api/conversations/{uuid}/favorite/` | Atualizar `favorite` da conta |
+| GET/POST | `/api/me/notifications/` | Listar notificações/marcar todas como lidas |
+| GET/POST | `/api/me/tickets/` | Acompanhar/criar chamado ou denúncia |
+
+Mensagens aceitam `text` até 5.000 caracteres e `attachment` opcional com
+`name`, `type` e `url` no formato data URL base64. Anexos têm limite de 2 MB e
+conteúdo JPEG/PNG/WebP/PDF validado no servidor. Não são expostos em URLs públicas.
+Somente comprador e vendedor acessam a conversa. O mesmo comprador/anúncio
+reutiliza a mesma conversa. O histórico continua disponível após pausar ou
+excluir logicamente o anúncio; novas conversas exigem anúncio ativo.
+
+Chamados aceitam `kind` (`support` ou `report`), `subject` e `message`, além de
+`post_id` ou `conversation_id` opcionais. Referências privadas só são aceitas
+para quem já tem acesso. Status e resposta são editados pela equipe no Admin;
+o usuário só acessa seus próprios chamados e recebe notificação das atualizações.
+Para criar o administrador local:
+
+```bash
+docker compose exec backend python manage.py createsuperuser
+```
+
+Os filtros booleanos de anúncios ausentes significam **sem filtro**, inclusive
+`has_photos`. `?has_photos=false` é uma escolha explícita de anúncios sem foto.
+Isso evita ocultar os anúncios com foto imediatamente após a publicação.

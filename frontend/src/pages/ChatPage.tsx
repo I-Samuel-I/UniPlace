@@ -6,6 +6,7 @@ import { Icon } from "../components/Icon";
 import { formatPrice } from "../components/ProductCard";
 import { followLink, productPath } from "../lib/navigation";
 import "./chat.css";
+import { RequestForm } from '../components/RequestForm';
 
 type ChatPageProps = {
   conversations: Conversation[];
@@ -17,7 +18,7 @@ type ChatPageProps = {
     id: string,
     text: string,
     attachment?: ChatMessage["attachment"],
-  ) => void;
+  ) => Promise<void>;
   onMarkRead: (id: string) => void;
   onToggleFavorite: (id: string) => void;
   onSelectProduct: (product: Product) => void;
@@ -96,6 +97,7 @@ export function ChatPage({
   const [text, setText] = useState("");
   const [attachment, setAttachment] = useState<ChatMessage["attachment"]>();
   const [readingFile, setReadingFile] = useState(false);
+  const [sending, setSending] = useState(false);
   const [fileError, setFileError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [showContact, setShowContact] = useState(false);
@@ -207,20 +209,22 @@ export function ChatPage({
     };
   }, [showContact]);
 
-  function sendMessage() {
-    if (!conversation || readingFile || (!text.trim() && !attachment)) return;
+  async function sendMessage() {
+    if (!conversation || sending || readingFile || (!text.trim() && !attachment)) return;
+    const selectedId = conversation.id;
+    setSending(true);
     try {
-      onSendMessage(conversation.id, text.trim(), attachment);
-      setText("");
-      setAttachment(undefined);
-      setFileError("");
+      await onSendMessage(conversation.id, text.trim(), attachment);
+      if (activeIdRef.current === selectedId) {
+        setText(""); setAttachment(undefined); setFileError("");
+      }
     } catch (error) {
       onNotify(
         error instanceof Error
           ? error.message
-          : "Não foi possível salvar a mensagem. Tente novamente.",
+          : "Não foi possível enviar a mensagem. Tente novamente.",
       );
-    }
+    } finally { setSending(false); }
   }
 
   function readAttachment(event: ChangeEvent<HTMLInputElement>) {
@@ -270,7 +274,7 @@ export function ChatPage({
       <section className="chat-page chat-missing">
         <Icon name="chat" size={42} />
         <h1>Conversa não encontrada</h1>
-        <p>Esta conversa não está disponível neste navegador.</p>
+        <p>Esta conversa não existe ou sua conta não tem acesso a ela.</p>
         <button className="primary-button" onClick={onBack}>
           <Icon name="arrow-left" size={17} />
           Voltar para conversas
@@ -418,7 +422,7 @@ export function ChatPage({
                 className={`chat-presence${contact.online ? " is-online" : ""}`}
               >
                 <i />
-                {contact.online ? "Online" : "Offline"}
+                {contact.online ? "Online" : "Presença não informada"}
               </span>
             </span>
           </button>
@@ -524,7 +528,7 @@ export function ChatPage({
                           <time dateTime={message.createdAt}>
                             {messageTime(message.createdAt)}
                           </time>
-                          <Icon name="check" size={12} />
+                          <span title={message.readAt ? 'Mensagem lida' : 'Mensagem enviada'}><Icon name="check" size={12} /></span>
                         </span>
                       )}
                     </div>
@@ -550,7 +554,7 @@ export function ChatPage({
           }}
         >
           <p className="chat-local-note">
-            Conversa de demonstração · mensagens salvas neste navegador
+            Mensagens privadas salvas na sua conta · atualização automática
           </p>
           {(attachment || readingFile) && (
             <div className="chat-pending-attachment">
@@ -616,7 +620,7 @@ export function ChatPage({
             <button
               className="chat-send"
               type="submit"
-              disabled={readingFile || (!text.trim() && !attachment)}
+              disabled={sending || readingFile || (!text.trim() && !attachment)}
               aria-label="Enviar mensagem"
             >
               <Icon name="send" size={21} />
@@ -659,7 +663,7 @@ export function ChatPage({
               className={`chat-presence${contact.online ? " is-online" : ""}`}
             >
               <i />
-              {contact.online ? "Online" : "Offline"}
+              {contact.online ? "Online" : "Presença não informada"}
             </span>
           </div>
         </div>
@@ -760,7 +764,7 @@ export function ChatPage({
                 className={`chat-presence${contact.online ? " is-online" : ""}`}
               >
                 <i />
-                {contact.online ? "Online" : "Offline"}
+                {contact.online ? "Online" : "Presença não informada"}
               </span>
             </div>
           </div>
@@ -812,17 +816,7 @@ export function ChatPage({
       )}
       {dialog === "report" && (
         <ChatDialog title="Denunciar usuário" onClose={() => setDialog(null)}>
-          <p>O envio de denúncias ainda não está disponível nesta versão.</p>
-          <p>
-            Se uma conversa parecer suspeita, evite pagamentos antecipados e
-            combine a conferência do produto em um local público do campus.
-          </p>
-          <button
-            className="primary-button chat-dialog-submit"
-            onClick={() => setDialog(null)}
-          >
-            Entendi
-          </button>
+          <RequestForm kind="report" conversationId={conversation.id} onSuccess={() => { setDialog(null); onNotify('Denúncia registrada. Acompanhe em Ajuda e Suporte.'); }} />
         </ChatDialog>
       )}
     </section>

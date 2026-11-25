@@ -739,6 +739,7 @@ function PostEditor({
     <label>
       Categoria
       <select
+        aria-label="Categoria"
         required
         value={categoryId}
         onChange={(event) => setCategoryId(event.target.value)}
@@ -831,6 +832,7 @@ function PostEditor({
           <label>
             Tipo
             <select
+              aria-label="Tipo"
               value={kind}
               onChange={(event) =>
                 setKind(event.target.value as PostDraft["kind"])
@@ -849,6 +851,7 @@ function PostEditor({
             <label>
               Condição
               <select
+                aria-label="Condição"
                 value={condition}
                 onChange={(event) =>
                   setCondition(event.target.value as Product["condition"])
@@ -876,6 +879,7 @@ function PostEditor({
           <label>
             Campus
             <select
+              aria-label="Campus"
               required
               value={campusId}
               onChange={(event) => {
@@ -896,6 +900,7 @@ function PostEditor({
           <label>
             Local de retirada
             <select
+              aria-label="Local de retirada"
               required
               value={pickupLocationId}
               onChange={(event) => setPickupLocationId(event.target.value)}

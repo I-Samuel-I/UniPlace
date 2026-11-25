@@ -4,6 +4,26 @@ import uuid
 from django.db import migrations, models
 
 
+class ReplacePrimaryKey(migrations.SeparateDatabaseAndState):
+    def database_operation(self, schema_editor):
+        operations = self.state_operations
+        # SQLite replaces the primary key while rebuilding the table. PostgreSQL
+        # must remove the old primary key before adding the new one.
+        if schema_editor.connection.vendor != 'sqlite':
+            operations = list(reversed(operations))
+        return migrations.SeparateDatabaseAndState(database_operations=operations)
+
+    def database_forwards(self, app_label, schema_editor, from_state, to_state):
+        self.database_operation(schema_editor).database_forwards(
+            app_label, schema_editor, from_state, to_state,
+        )
+
+    def database_backwards(self, app_label, schema_editor, from_state, to_state):
+        self.database_operation(schema_editor).database_backwards(
+            app_label, schema_editor, from_state, to_state,
+        )
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -11,14 +31,18 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='post',
-            name='pkid',
-            field=models.BigAutoField(editable=False, primary_key=True, serialize=False),
-        ),
-        migrations.AlterField(
-            model_name='post',
-            name='id',
-            field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+        ReplacePrimaryKey(
+            state_operations=[
+                migrations.AddField(
+                    model_name='post',
+                    name='pkid',
+                    field=models.BigAutoField(editable=False, primary_key=True, serialize=False),
+                ),
+                migrations.AlterField(
+                    model_name='post',
+                    name='id',
+                    field=models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
+                ),
+            ],
         ),
     ]

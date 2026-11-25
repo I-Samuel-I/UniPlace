@@ -34,7 +34,12 @@ class PostQuerySerializer(serializers.Serializer):
 
 class MarketplaceFilter(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
-        serializer = PostQuerySerializer(data=request.query_params)
+        # QueryDict is treated as an HTML form by DRF: an omitted checkbox
+        # becomes False. In a query string, omission means "do not filter".
+        query = request.query_params
+        multiple = {"campus", "pickup_location", "condition"}
+        data = {key: query.getlist(key) if key in multiple else query[key] for key in query}
+        serializer = PostQuerySerializer(data=data)
         serializer.is_valid(raise_exception=True)
         params = serializer.validated_data
         if "category" in params:

@@ -12,9 +12,12 @@ import { AuthPage } from "./pages/AuthPage";
 import { useChat } from "./data/chat";
 import { useMarketplace } from "./data/marketplace";
 import { logout, useSession } from "./data/session";
+import { useCommunity } from './data/community';
+import { errorMessage } from './lib/api';
+import { AccountPage } from './pages/AccountPage';
 
 type Route = {
-  page: "home" | "explore" | "favorites" | "product" | "my-posts" | "chat";
+  page: "home" | "explore" | "favorites" | "product" | "my-posts" | "chat" | "account" | "support";
   search: string;
   category: string;
   productId: string;
@@ -49,7 +52,10 @@ function readRoute(): Route {
       ? "product"
       : chatMatch || pathname === "/chat"
         ? "chat"
-        : ["/meus-anuncios", "/perfil"].includes(pathname)
+        : pathname === '/perfil' || pathname === '/configuracoes'
+          ? 'account'
+          : pathname === '/suporte' ? 'support'
+        : pathname === '/meus-anuncios'
           ? "my-posts"
           : pathname === "/favoritos"
             ? "favorites"
@@ -63,26 +69,13 @@ function readRoute(): Route {
     conversationId,
   };
 }
-function readFavorites(): string[] {
-  try {
-    const stored: unknown = JSON.parse(
-      localStorage.getItem("uniplace:favorites") ?? "[]",
-    );
-    return Array.isArray(stored)
-      ? stored.filter((id): id is string => typeof id === "string")
-      : [];
-  } catch {
-    return [];
-  }
-}
-
 export default function App() {
   const session = useSession();
   const market = useMarketplace(session?.user.id ?? null);
-  const chat = useChat();
+  const chat = useChat(session?.user.id ?? null);
+  const community = useCommunity(session?.user.id ?? null);
   const [route, setRoute] = useState(readRoute);
   const [search, setSearch] = useState(route.search);
-  const [savedFavorites, setFavorites] = useState(readFavorites);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [toast, setToast] = useState("");
   const [popover, setPopover] = useState<"notifications" | "profile" | null>(
@@ -105,8 +98,8 @@ export default function App() {
     market.myPosts.some((post) => post.id === product.id);
   const favorites = useMemo(() => {
     const availableIds = new Set(catalogProducts.map((product) => product.id));
-    return [...new Set(savedFavorites)].filter((id) => availableIds.has(id));
-  }, [savedFavorites, catalogProducts]);
+    return [...new Set(community.favorites)].filter((id) => availableIds.has(id));
+  }, [community.favorites, catalogProducts]);
   const sellerProducts = (sellerId: string) =>
     catalogProducts.filter(
       (product) =>
@@ -133,19 +126,9 @@ export default function App() {
     return () => window.removeEventListener("popstate", update);
   }, []);
   useEffect(() => {
-    document.title = `${route.page === "home" ? "Início" : route.page === "favorites" ? "Favoritos" : route.page === "my-posts" ? "Meus Anúncios" : route.page === "chat" ? "Chat" : route.page === "product" ? (currentProduct?.title ?? "Anúncio não encontrado") : "Explorar Anúncios"} | UniPlace`;
+    document.title = `${route.page === 'account' ? 'Meu perfil' : route.page === 'support' ? 'Ajuda e Suporte' : route.page === "home" ? "Início" : route.page === "favorites" ? "Favoritos" : route.page === "my-posts" ? "Meus Anúncios" : route.page === "chat" ? "Chat" : route.page === "product" ? (currentProduct?.title ?? "Anúncio não encontrado") : "Explorar Anúncios"} | UniPlace`;
   }, [route.page, currentProduct?.title]);
-  useEffect(() => {
-    try {
-      // Salva a lista completa: o catálogo chega depois e não deve apagá-la.
-      localStorage.setItem(
-        "uniplace:favorites",
-        JSON.stringify(savedFavorites),
-      );
-    } catch {
-      /* Storage can be unavailable in private contexts. */
-    }
-  }, [savedFavorites]);
+  useEffect(() => { if (community.error) notify(community.error); }, [community.error]);
   useEffect(() => {
     if (!popover) return;
     const close = (event: MouseEvent) => {
@@ -205,7 +188,7 @@ export default function App() {
     if (query) params.set("q", query);
     if (sellerId) params.set("vendedor", sellerId);
     const path =
-      page === "home"
+      page === 'account' ? '/perfil' : page === 'support' ? '/suporte' : page === "home"
         ? "/"
         : page === "favorites"
           ? "/favoritos"
@@ -234,9 +217,9 @@ export default function App() {
   function openProduct(product: Product) {
     navigate("product", { productId: product.id });
   }
-  function openChat(product: Product) {
+  async function openChat(product: Product) {
     try {
-      const conversationId = chat.startConversation(
+      const conversationId = await chat.startConversation(
         product,
         isOwnProduct(product),
       );
@@ -251,15 +234,7 @@ export default function App() {
     }
   }
   function toggleFavorite(id: string) {
-    setFavorites((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id],
-    );
-  }
-  function comingSoon(label: string) {
-    setMobileMenu(false);
-    notify(`${label} estará disponível em uma próxima versão.`);
+    void community.toggleFavorite(id).catch(failure => notify(errorMessage(failure, 'Não foi possível atualizar o favorito.')));
   }
 
   if (!session) return <AuthPage />;
@@ -339,13 +314,13 @@ export default function App() {
                 onClick={() =>
                   item.id === "notifications"
                     ? (setPopover("notifications"), setMobileMenu(false))
-                    : comingSoon(item.label)
+                    : undefined
                 }
               >
                 <Icon name={item.icon} size={19} />
                 <span>{item.label}</span>
                 {item.id === "notifications" && (
-                  <span className="notification-count">3</span>
+                  community.notices.unread > 0 && <span className="notification-count">{community.notices.unread}</span>
                 )}
               </button>
             ),
@@ -354,18 +329,14 @@ export default function App() {
         <div className="sidebar-footer">
           <button
             className="nav-item"
-            onClick={() => comingSoon("Configurações")}
+            onClick={() => navigate('account')}
           >
             <Icon name="settings" size={18} />
             <span>Configurações</span>
           </button>
           <button
             className="nav-item"
-            onClick={() =>
-              notify(
-                "Precisa de ajuda? Explore os anúncios, use os filtros e salve seus favoritos para encontrar depois.",
-              )
-            }
+            onClick={() => navigate('support')}
           >
             <Icon name="help" size={18} />
             <span>Ajuda e Suporte</span>
@@ -431,7 +402,7 @@ export default function App() {
             <div className="notification-anchor">
               <button
                 className="icon-button header-bell"
-                aria-label="Ver 3 notificações"
+                aria-label={`Ver ${community.notices.unread} notificações`}
                 aria-expanded={popover === "notifications"}
                 onClick={() =>
                   setPopover(
@@ -440,33 +411,20 @@ export default function App() {
                 }
               >
                 <Icon name="bell" size={21} />
-                <span className="header-notification-count">3</span>
+                {community.notices.unread > 0 && <span className="header-notification-count">{community.notices.unread}</span>}
               </button>
               {popover === "notifications" && (
                 <div className="header-popover notifications-popover">
                   <h2>Notificações</h2>
-                  <p className="popover-intro">Boas-vindas à comunidade!</p>
-                  <div className="notification-entry">
-                    <Icon name="bag" />
-                    <div>
-                      <strong>Seu campus, mais conectado</strong>
-                      <p>Encontre ofertas de outros estudantes.</p>
-                    </div>
-                  </div>
-                  <div className="notification-entry">
-                    <Icon name="search" />
-                    <div>
-                      <strong>Encontre seu próximo achado</strong>
-                      <p>Explore as categorias e filtre os anúncios.</p>
-                    </div>
-                  </div>
-                  <div className="notification-entry">
-                    <Icon name="heart" />
-                    <div>
-                      <strong>Guarde o que você gostou</strong>
-                      <p>Seus favoritos ficam salvos neste navegador.</p>
-                    </div>
-                  </div>
+                  {community.notices.unread > 0 && <button onClick={() => void community.markNoticesRead().catch(failure => notify(errorMessage(failure, 'Não foi possível marcar as notificações.')))}>Marcar todas como lidas</button>}
+                  {community.notices.results.length === 0 && <p>Nenhuma notificação.</p>}
+                  {community.notices.results.map(notice => <div className={`notification-entry${notice.read_at ? '' : ' is-unread'}`} key={notice.id}><Icon name="bell" /><button onClick={() => {
+                    const conversationId = notice.url.match(/^\/chat\/([^/]+)$/)?.[1];
+                    const productId = notice.url.match(/^\/anuncios\/([^/]+)$/)?.[1];
+                    if (conversationId) navigate('chat', { conversationId });
+                    else if (productId) navigate('product', { productId });
+                    else navigate('support');
+                  }}>{notice.text}</button></div>)}
                 </div>
               )}
             </div>
@@ -492,7 +450,7 @@ export default function App() {
                   <a
                     href="/perfil"
                     onClick={(event) =>
-                      followLink(event, () => navigate("my-posts"))
+                      followLink(event, () => navigate("account"))
                     }
                   >
                     <Icon name="user" size={17} />
@@ -521,7 +479,7 @@ export default function App() {
           className={`main-content${route.page === "chat" ? " main-content--chat" : ""}`}
           tabIndex={-1}
         >
-          {route.page !== "chat" && !market.loaded ? (
+          {route.page === 'account' || route.page === 'support' ? <AccountPage key={`${route.page}-${session.user.id}`} support={route.page === 'support'} onNotify={notify} /> : route.page === 'chat' && !chat.loaded ? <div className="page-status" role="status">Carregando conversas...</div> : route.page !== "chat" && !market.loaded ? (
             <div className="page-status" role="status">
               {market.error ? (
                 <>
@@ -552,7 +510,7 @@ export default function App() {
               onNotify={notify}
             />
           ) : route.page === "chat" ? (
-            <ChatPage
+            <>{chat.storageError && <div role="alert" className="page-status"><p>{chat.storageError}</p><button onClick={() => void chat.reload()}>Tentar novamente</button></div>}<ChatPage
               conversations={chat.conversations}
               conversationId={route.conversationId}
               products={catalogProducts}
@@ -562,10 +520,10 @@ export default function App() {
               onBack={() => navigate("chat")}
               onSendMessage={chat.sendMessage}
               onMarkRead={chat.markRead}
-              onToggleFavorite={chat.toggleFavorite}
+              onToggleFavorite={(id) => { void chat.toggleFavorite(id).catch(failure => notify(errorMessage(failure, 'Não foi possível atualizar a conversa.'))); }}
               onSelectProduct={openProduct}
               onNotify={notify}
-            />
+            /></>
           ) : route.page === "home" ? (
             <HomePage
               products={catalogProducts}

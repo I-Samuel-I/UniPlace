@@ -117,9 +117,13 @@ class PostViewSet(PostListingMixin, viewsets.ModelViewSet):
     @transaction.atomic
     def change_status(self, request, id=None):
         post = owned_post(request, id)
+        previous_status = post.status
         serializer = PostStatusSerializer(post, data=request.data, context=self.get_serializer_context())
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        from community.models import Notification
+        if post.status == Post.Status.ACTIVE and previous_status != post.status:
+            Notification.objects.create(user=request.user, text=f'Anúncio publicado: {post.title}', url=f'/anuncios/{post.id}')
         return Response(self.get_serializer(post).data)
 
 

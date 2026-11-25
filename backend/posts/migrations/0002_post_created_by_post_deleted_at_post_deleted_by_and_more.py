@@ -6,6 +6,27 @@ from django.conf import settings
 from django.db import migrations, models
 
 
+def integer_ids_to_uuids(apps, schema_editor):
+    if schema_editor.connection.vendor == 'postgresql':
+        # Finish deferred foreign-key checks before the following schema change.
+        schema_editor.execute('SET CONSTRAINTS ALL IMMEDIATE')
+    posts = apps.get_model('posts', 'Post').objects.using(schema_editor.connection.alias)
+    # Preserve each legacy identifier without relying on a bigint-to-UUID cast.
+    for post_id in list(posts.values_list('id', flat=True)):
+        posts.filter(id=post_id).update(id=uuid.UUID(int=int(post_id)).hex)
+
+
+def uuid_ids_to_integers(apps, schema_editor):
+    if schema_editor.connection.vendor == 'postgresql':
+        schema_editor.execute('SET CONSTRAINTS ALL IMMEDIATE')
+    posts = apps.get_model('posts', 'Post').objects.using(schema_editor.connection.alias)
+    for post_id in list(posts.values_list('id', flat=True)):
+        integer_id = uuid.UUID(str(post_id)).int
+        if integer_id > 9223372036854775807:
+            raise RuntimeError('Cannot restore an integer ID for a post created with a UUID.')
+        posts.filter(id=post_id).update(id=str(integer_id))
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -44,6 +65,12 @@ class Migration(migrations.Migration):
             name='created_at',
             field=models.DateTimeField(auto_now_add=True, null=True, verbose_name='Criado em'),
         ),
+        migrations.AlterField(
+            model_name='post',
+            name='id',
+            field=models.CharField(editable=False, max_length=36, primary_key=True, serialize=False),
+        ),
+        migrations.RunPython(integer_ids_to_uuids, uuid_ids_to_integers),
         migrations.AlterField(
             model_name='post',
             name='id',
