@@ -301,7 +301,7 @@ export function MyPostsPage({
         aria-label="Meus anúncios publicados"
       >
         {shownPosts.map((post) => (
-          <article className="owned-post-card" key={post.id}>
+          <article className="owned-post-card" key={post.id} data-reveal>
             <div className="owned-post-picture">
               <a
                 href={productPath(post.id)}

@@ -283,7 +283,7 @@ export function ExplorePage({
         </span>
       </nav>
 
-      <div className="explore-heading">
+      <div className="explore-heading" data-reveal>
         <div>
           <h1>
             {favoritesOnly

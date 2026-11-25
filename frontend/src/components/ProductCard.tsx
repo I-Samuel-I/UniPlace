@@ -35,6 +35,7 @@ export function ProductCard({
   return (
     <article
       className={`product-card ${layout === "list" ? "product-card--list" : ""}`}
+      data-reveal
     >
       <div className="product-picture">
         <a

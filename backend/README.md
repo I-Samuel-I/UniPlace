@@ -419,7 +419,19 @@ Todas exigem autenticação JWT, exceto a verificação de saúde.
 | POST | `/api/conversations/{uuid}/read/` | Confirmar leitura das mensagens recebidas |
 | PATCH | `/api/conversations/{uuid}/favorite/` | Atualizar `favorite` da conta |
 | GET/POST | `/api/me/notifications/` | Listar notificações/marcar todas como lidas |
+| PATCH/DELETE | `/api/me/notifications/{uuid}/` | Alterar leitura com `{"read": true/false}` ou excluir um aviso próprio |
 | GET/POST | `/api/me/tickets/` | Acompanhar/criar chamado ou denúncia |
+
+A listagem de notificações aceita `status=all|unread|read`,
+`kind=all|message|post|support|system`, `page` e `page_size` (1–100, padrão 20).
+Retorna `results`, `count` filtrado, `page`, `page_size`, `has_next`,
+`total`, `unread` e contagens por categoria em `kinds` da conta inteira.
+O POST marca todas as categorias/páginas como lidas; o PATCH altera somente o
+aviso indicado. Excluir uma notificação preserva a conversa, anúncio ou chamado.
+Mensagens recebidas, publicação de anúncios e respostas/status de chamados no
+Admin geram avisos automaticamente. A página fica em `/notificacoes`; o sino
+mostra os cinco avisos mais recentes. O frontend consulta atualizações a cada
+10 segundos enquanto a aba está visível e ao voltar para a janela.
 
 Mensagens aceitam `text` até 5.000 caracteres e `attachment` opcional com
 `name`, `type` e `url` no formato data URL base64. Anexos têm limite de 2 MB e

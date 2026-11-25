@@ -44,8 +44,15 @@ class Message(models.Model):
 
 
 class Notification(models.Model):
+    class Kind(models.TextChoices):
+        MESSAGE = 'message', 'Mensagens'
+        POST = 'post', 'Anúncios'
+        SUPPORT = 'support', 'Suporte'
+        SYSTEM = 'system', 'UniPlace'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.SYSTEM)
     text = models.CharField(max_length=500)
     url = models.CharField(max_length=200, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -53,6 +60,7 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ('-created_at', '-id')
+        indexes = [models.Index(fields=('user', '-created_at', '-id'), name='notice_user_created_idx')]
 
 
 class Ticket(models.Model):

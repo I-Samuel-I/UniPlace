@@ -1,6 +1,8 @@
 import type { CSSProperties, ReactNode } from "react";
 
 const paths: Record<string, ReactNode> = {
+  whatsapp: <><path d="M21 11.5a9 9 0 0 1-13.4 7.8L3 21l1.6-4.7A9 9 0 1 1 21 11.5Z" /><path d="m8.4 7.2 1.4 2.5-1 1.1a8 8 0 0 0 4.3 4.1l1-1.2 2.7 1.3c-.2 1.7-1.2 2.3-2.6 2-4.4-1-7.7-4.3-8.1-7.5-.2-1.1.5-2 1.4-2.3h.9Z" /></>,
+  refresh: <><path d="M20 7v5h-5M4 17v-5h5" /><path d="M6 6a8 8 0 0 1 13 2l1 4M4 12l1 4a8 8 0 0 0 13 2" /></>,
   lock: <><rect x="4" y="10" width="16" height="12" rx="3" /><path d="M8 10V6a4 4 0 0 1 8 0v4m-4 5v3" /></>,
   download: <><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" /></>,
   graduation: <><path d="m2 9 10-5 10 5-10 5L2 9Zm4 3v6c4 3 8 3 12 0v-6m4-3v8" /></>,

@@ -71,6 +71,7 @@ export function HomePage({
     <div className="home-page">
       <section
         className="hero"
+        data-reveal
         aria-label="Destaques UniPlace"
         aria-roledescription="carrossel"
       >
@@ -112,16 +113,18 @@ export function HomePage({
       </section>
 
       <section className="home-section" aria-labelledby="categories-heading">
-        <div className="section-heading">
+        <div className="section-heading" data-reveal>
           <h2 id="categories-heading">Categorias</h2>
           <button className="text-link" onClick={() => onExplore()}>
             Ver todas <span aria-hidden="true">→</span>
           </button>
         </div>
         <div className="category-grid">
-          {categories.map((category) => (
+          {categories.map((category, index) => (
             <button
               className="category-tile"
+              data-reveal
+              data-reveal-delay={(index % 4) * 55}
               key={category.id}
               onClick={() =>
                 onExplore(category.id === "mais" ? undefined : category.id)
@@ -140,7 +143,7 @@ export function HomePage({
         className="home-section featured-section"
         aria-labelledby="featured-heading"
       >
-        <div className="section-heading">
+        <div className="section-heading" data-reveal>
           <h2 id="featured-heading">
             {hasFeatured ? "Anúncios em destaque" : "Anúncios recentes"}
           </h2>

@@ -11,5 +11,6 @@ urlpatterns = [
     path('conversations/<uuid:conversation_id>/read/', views.ConversationReadView.as_view()),
     path('conversations/<uuid:conversation_id>/favorite/', views.ConversationFavoriteView.as_view()),
     path('me/notifications/', views.NotificationsView.as_view()),
+    path('me/notifications/<uuid:notification_id>/', views.NotificationDetailView.as_view()),
     path('me/tickets/', views.TicketsView.as_view()),
 ]

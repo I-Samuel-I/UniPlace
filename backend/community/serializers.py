@@ -83,7 +83,18 @@ class ConversationSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
-        fields = ('id', 'text', 'url', 'created_at', 'read_at')
+        fields = ('id', 'kind', 'text', 'url', 'created_at', 'read_at')
+
+
+class NotificationQuerySerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=('all', 'unread', 'read'), default='all')
+    kind = serializers.ChoiceField(choices=('all', *Notification.Kind.values), default='all')
+    page = serializers.IntegerField(min_value=1, max_value=1_000_000, default=1)
+    page_size = serializers.IntegerField(min_value=1, max_value=100, default=20)
+
+
+class NotificationReadSerializer(serializers.Serializer):
+    read = serializers.BooleanField()
 
 
 class TicketSerializer(serializers.ModelSerializer):

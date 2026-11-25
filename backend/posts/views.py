@@ -8,6 +8,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from community.models import Notification
 from posts.filters import MarketplaceFilter, MarketplacePagination
 from posts.models import Campus, Category, PickupLocation, Post, PostImage
 from posts.permissions import IsPostOwnerOrReadOnly
@@ -121,9 +122,8 @@ class PostViewSet(PostListingMixin, viewsets.ModelViewSet):
         serializer = PostStatusSerializer(post, data=request.data, context=self.get_serializer_context())
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        from community.models import Notification
         if post.status == Post.Status.ACTIVE and previous_status != post.status:
-            Notification.objects.create(user=request.user, text=f'Anúncio publicado: {post.title}', url=f'/anuncios/{post.id}')
+            Notification.objects.create(user=request.user, kind=Notification.Kind.POST, text=f'Anúncio publicado: {post.title}', url=f'/anuncios/{post.id}')
         return Response(self.get_serializer(post).data)
 
 

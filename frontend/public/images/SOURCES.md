@@ -25,6 +25,12 @@ Licença: https://unsplash.com/license
 
 As fotos de pessoas ilustram perfis fictícios; nomes, avaliações e depoimentos são dados demonstrativos. A galeria do MacBook usa quatro fotografias ilustrativas do modelo, incluindo detalhes de teclado e conexões. Não são fotografias de uma oferta real.
 
+## Ilustração do banner da página inicial
+
+- Arquivo fornecido pelo usuário: `Estudante com Painel Educacional Flutuante.png`.
+- Usado no carrossel da página inicial, com transparência e proporções preservadas.
+- Esta ilustração é diferente da utilizada no login e cadastro.
+
 ## Ilustração de login e cadastro
 
 - Original fornecido pelo usuário: `Estudante explorando marketplace acadêmico.png`.

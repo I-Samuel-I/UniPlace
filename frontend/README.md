@@ -72,9 +72,16 @@ No Docker, `API_TARGET=http://backend:8000` faz a mesma integração.
 - `/termos-de-uso` e `/politica-de-privacidade`: documentos públicos de exemplo
   para apresentação acadêmica, acessíveis pelas configurações e pelo login.
   Os textos editáveis ficam em `src/data/legal.ts`.
-- `/suporte`: abertura e acompanhamento de chamados e denúncias; a equipe pode
-  responder e resolver pelo Django Admin. Não há resposta automática nem suporte instantâneo.
-- Notificações de publicação, mensagens e respostas de chamados, com leitura por conta.
+- `/suporte`: categorias e motivos prontos para dúvidas, problemas e denúncias,
+  além de outros assuntos com descrição livre. Mostra uma prévia e abre o WhatsApp
+  do suporte em `(83) 9 9606-7677` com a mensagem preenchida; o usuário confirma o
+  envio no WhatsApp. Os contatos iniciados por essa página são acompanhados por lá.
+  Chamados e denúncias registrados dentro da plataforma continuam disponíveis
+  na seção de solicitações anteriores, com respostas da equipe pelo Django Admin.
+- `/notificacoes`: histórico paginado por conta com filtros de leitura e categoria,
+  leitura individual ou em lote e exclusão de avisos. O sino mostra os cinco avisos
+  mais recentes e abre o anúncio, conversa ou suporte correspondente. Marcar uma
+  conversa como lida também atualiza os avisos e o contador do sino.
 
 Fotos de anúncio: até 5 MB, validadas também no servidor. Anexos de chat: até 2 MB,
 validados por conteúdo e acessíveis somente aos participantes pela API autenticada.
@@ -84,6 +91,13 @@ receber foco e a cada 30 segundos. Notificações e favoritos sincronizam a cada
 
 Tokens JWT ficam no navegador e são renovados automaticamente. Os dados pessoais
 não são compartilhados entre contas. Favoritos e mensagens não dependem de localStorage.
+
+A rodinha do mouse usa rolagem suave com inércia e desaceleração gradual. O movimento
+cede ao teclado, ao toque e à navegação; áreas com rolagem própria mantêm o controle
+nativo. A preferência do dispositivo por movimento reduzido também é respeitada.
+
+URLs que não correspondem a uma rota exibem uma página 404 pública, com atalhos
+para o início, anúncios e suporte. Ela também funciona sem sessão ou acesso à API.
 
 ## Verificações
 

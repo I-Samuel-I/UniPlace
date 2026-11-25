@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Product } from "./data/catalog";
 import { Icon } from "./components/Icon";
 import { HomePage } from "./pages/HomePage";
@@ -13,13 +13,19 @@ import { useChat } from "./data/chat";
 import { useMarketplace } from "./data/marketplace";
 import { logout, useSession } from "./data/session";
 import { useCommunity } from './data/community';
-import { errorMessage } from './lib/api';
+import { errorMessage, getSession } from './lib/api';
+import { useNotifications, noticeDestination, noticeKinds, noticeTime } from './data/notifications';
+import type { Notice } from './data/notifications';
+import { NotificationsPage } from './pages/NotificationsPage';
 import { AccountPage } from './pages/AccountPage';
 import { LegalPage } from './pages/LegalPage';
 import { legalKindFromPath } from './data/legal';
+import { useScrollReveal } from './lib/scrollReveal';
+import { useSmoothScroll } from './lib/smoothScroll';
+import { NotFoundPage } from './pages/NotFoundPage';
 
 type Route = {
-  page: "home" | "explore" | "favorites" | "product" | "my-posts" | "chat" | "account" | "support";
+  page: "home" | "explore" | "favorites" | "product" | "my-posts" | "chat" | "account" | "support" | "notifications" | "not-found";
   search: string;
   category: string;
   productId: string;
@@ -30,7 +36,7 @@ function readRoute(): Route {
   const params = new URLSearchParams(window.location.search);
   const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
   const chatMatch = pathname.match(/^\/chat\/([^/]+)$/);
-  const productMatch = window.location.pathname.match(
+  const productMatch = pathname.match(
     /^\/anuncios\/([^/]+)\/?$/,
   );
   let productId = "";
@@ -57,13 +63,14 @@ function readRoute(): Route {
         : pathname === '/perfil' || pathname === '/configuracoes'
           ? 'account'
           : pathname === '/suporte' ? 'support'
+          : pathname === '/notificacoes' ? 'notifications'
         : pathname === '/meus-anuncios'
           ? "my-posts"
           : pathname === "/favoritos"
             ? "favorites"
-            : ["/explorar", "/anuncios"].includes(window.location.pathname)
+            : ["/explorar", "/anuncios"].includes(pathname)
               ? "explore"
-              : "home",
+              : pathname === "/" ? "home" : "not-found",
     search: params.get("q") ?? "",
     category: params.get("categoria") ?? "",
     productId,
@@ -72,16 +79,29 @@ function readRoute(): Route {
   };
 }
 export default function App() {
+  useSmoothScroll();
+  const [route, setRoute] = useState(readRoute);
+  useEffect(() => {
+    const update = () => setRoute(readRoute());
+    window.addEventListener("popstate", update);
+    return () => window.removeEventListener("popstate", update);
+  }, []);
   const legalKind = legalKindFromPath(window.location.pathname);
-  return legalKind ? <LegalPage kind={legalKind} /> : <MarketplaceApp />;
+  if (legalKind) return <LegalPage kind={legalKind} />;
+  if (route.page === "not-found") return <NotFoundPage />;
+  return <MarketplaceApp route={route} onRouteChange={setRoute} />;
 }
 
-function MarketplaceApp() {
+function MarketplaceApp({ route, onRouteChange }: { route: Route; onRouteChange: (route: Route) => void }) {
   const session = useSession();
   const market = useMarketplace(session?.user.id ?? null);
   const chat = useChat(session?.user.id ?? null);
   const community = useCommunity(session?.user.id ?? null);
-  const [route, setRoute] = useState(readRoute);
+  const notifications = useNotifications(session?.user.id ?? null);
+  const markConversationRead = useCallback(async (id: string) => {
+    await chat.markRead(id);
+    await notifications.reload();
+  }, [chat.markRead, notifications.reload]);
   const [search, setSearch] = useState(route.search);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [toast, setToast] = useState("");
@@ -92,6 +112,7 @@ function MarketplaceApp() {
     undefined,
   );
   const popoverRef = useRef<HTMLDivElement>(null);
+  const contentRef = useScrollReveal();
   // Catálogo de anúncios ativos mais os anúncios próprios em outros status,
   // para que o dono consiga abrir rascunhos, pausados e vendidos.
   const catalogProducts = useMemo<Product[]>(() => {
@@ -123,17 +144,12 @@ function MarketplaceApp() {
     : undefined;
 
   useEffect(() => {
-    const update = () => {
-      const next = readRoute();
-      setRoute(next);
-      setSearch(next.search);
-      setMobileMenu(false);
-    };
-    window.addEventListener("popstate", update);
-    return () => window.removeEventListener("popstate", update);
-  }, []);
+    setSearch(route.search);
+    setMobileMenu(false);
+    setPopover(null);
+  }, [route]);
   useEffect(() => {
-    document.title = `${route.page === 'account' ? 'Meu perfil' : route.page === 'support' ? 'Ajuda e Suporte' : route.page === "home" ? "Início" : route.page === "favorites" ? "Favoritos" : route.page === "my-posts" ? "Meus Anúncios" : route.page === "chat" ? "Chat" : route.page === "product" ? (currentProduct?.title ?? "Anúncio não encontrado") : "Explorar Anúncios"} | UniPlace`;
+    document.title = `${route.page === 'notifications' ? 'Notificações' : route.page === 'account' ? 'Meu perfil' : route.page === 'support' ? 'Ajuda e Suporte' : route.page === "home" ? "Início" : route.page === "favorites" ? "Favoritos" : route.page === "my-posts" ? "Meus Anúncios" : route.page === "chat" ? "Chat" : route.page === "product" ? (currentProduct?.title ?? "Anúncio não encontrado") : "Explorar Anúncios"} | UniPlace`;
   }, [route.page, currentProduct?.title]);
   useEffect(() => { if (community.error) notify(community.error); }, [community.error]);
   useEffect(() => {
@@ -195,7 +211,7 @@ function MarketplaceApp() {
     if (query) params.set("q", query);
     if (sellerId) params.set("vendedor", sellerId);
     const path =
-      page === 'account' ? '/perfil' : page === 'support' ? '/suporte' : page === "home"
+      page === 'notifications' ? '/notificacoes' : page === 'account' ? '/perfil' : page === 'support' ? '/suporte' : page === "home"
         ? "/"
         : page === "favorites"
           ? "/favoritos"
@@ -208,7 +224,7 @@ function MarketplaceApp() {
                 : "/explorar";
     const url = `${path}${params.size ? `?${params}` : ""}`;
     window.history.pushState({}, "", url);
-    setRoute({
+    onRouteChange({
       page,
       category,
       search: query,
@@ -243,6 +259,23 @@ function MarketplaceApp() {
   function toggleFavorite(id: string) {
     void community.toggleFavorite(id).catch(failure => notify(errorMessage(failure, 'Não foi possível atualizar o favorito.')));
   }
+  async function openNotice(notice: Notice) {
+    try {
+      if (!notice.read_at && !await notifications.markRead(notice, true)) return;
+      if (getSession()?.user.id !== session?.user.id) return;
+      const destination = noticeDestination(notice.url);
+      const conversationId = destination?.match(/^\/chat\/([^/]+)$/)?.[1];
+      const productId = destination?.match(/^\/anuncios\/([^/]+)$/)?.[1];
+      if (conversationId) navigate('chat', { conversationId });
+      else if (productId) navigate('product', { productId });
+      else if (destination === '/suporte') navigate('support');
+      else if (destination === '/meus-anuncios') navigate('my-posts');
+      else if (destination === '/perfil' || destination === '/configuracoes') navigate('account');
+      else if (destination === '/explorar') navigate('explore');
+      else if (destination === '/chat') navigate('chat');
+      else navigate('notifications');
+    } catch (failure) { notify(errorMessage(failure, 'Não foi possível abrir a notificação.')); }
+  }
 
   if (!session) return <AuthPage />;
 
@@ -261,7 +294,7 @@ function MarketplaceApp() {
       href: "/meus-anuncios",
     },
     { id: "chat", label: "Chat", icon: "chat", href: "/chat" },
-    { id: "notifications", label: "Notificações", icon: "bell" },
+    { id: "notifications", label: "Notificações", icon: "bell", href: '/notificacoes' },
     { id: "favorites", label: "Favoritos", icon: "heart", href: "/favoritos" },
   ];
 
@@ -297,8 +330,7 @@ function MarketplaceApp() {
           </span>
         </a>
         <nav className="main-nav" aria-label="Navegação principal">
-          {navigation.map((item) =>
-            item.href ? (
+          {navigation.map((item) => (
               <a
                 key={item.id}
                 href={item.href}
@@ -313,25 +345,9 @@ function MarketplaceApp() {
                 {item.id === "favorites" && favorites.length > 0 && (
                   <span className="nav-favorite-count">{favorites.length}</span>
                 )}
+                {item.id === 'notifications' && notifications.data.unread > 0 && <span className="notification-count">{notifications.data.unread}</span>}
               </a>
-            ) : (
-              <button
-                key={item.id}
-                className="nav-item"
-                onClick={() =>
-                  item.id === "notifications"
-                    ? (setPopover("notifications"), setMobileMenu(false))
-                    : undefined
-                }
-              >
-                <Icon name={item.icon} size={19} />
-                <span>{item.label}</span>
-                {item.id === "notifications" && (
-                  community.notices.unread > 0 && <span className="notification-count">{community.notices.unread}</span>
-                )}
-              </button>
-            ),
-          )}
+          ))}
         </nav>
         <div className="sidebar-footer">
           <button
@@ -409,7 +425,7 @@ function MarketplaceApp() {
             <div className="notification-anchor">
               <button
                 className="icon-button header-bell"
-                aria-label={`Ver ${community.notices.unread} notificações`}
+                aria-label={`Ver notificações, ${notifications.data.unread} não lidas`}
                 aria-expanded={popover === "notifications"}
                 onClick={() =>
                   setPopover(
@@ -418,20 +434,14 @@ function MarketplaceApp() {
                 }
               >
                 <Icon name="bell" size={21} />
-                {community.notices.unread > 0 && <span className="header-notification-count">{community.notices.unread}</span>}
+                {notifications.data.unread > 0 && <span className="header-notification-count">{notifications.data.unread}</span>}
               </button>
               {popover === "notifications" && (
-                <div className="header-popover notifications-popover">
-                  <h2>Notificações</h2>
-                  {community.notices.unread > 0 && <button onClick={() => void community.markNoticesRead().catch(failure => notify(errorMessage(failure, 'Não foi possível marcar as notificações.')))}>Marcar todas como lidas</button>}
-                  {community.notices.results.length === 0 && <p>Nenhuma notificação.</p>}
-                  {community.notices.results.map(notice => <div className={`notification-entry${notice.read_at ? '' : ' is-unread'}`} key={notice.id}><Icon name="bell" /><button onClick={() => {
-                    const conversationId = notice.url.match(/^\/chat\/([^/]+)$/)?.[1];
-                    const productId = notice.url.match(/^\/anuncios\/([^/]+)$/)?.[1];
-                    if (conversationId) navigate('chat', { conversationId });
-                    else if (productId) navigate('product', { productId });
-                    else navigate('support');
-                  }}>{notice.text}</button></div>)}
+                <div className="header-popover notifications-popover" role="region" aria-label="Notificações recentes">
+                  <div className="notice-preview-header"><h2>Notificações</h2><span>{notifications.data.unread} não lidas</span></div>
+                  {notifications.error ? <div className="notice-preview-status" role="alert"><p>{notifications.error}</p><button className="notice-button" onClick={() => void notifications.reload()}>Tentar novamente</button></div> : !notifications.loaded ? <p className="notice-preview-status" role="status">Carregando notificações...</p> : notifications.data.results.length === 0 && <p className="notice-preview-status">Nenhuma notificação por enquanto.</p>}
+                  {notifications.data.results.map(notice => <div className={`notice-preview${notice.read_at ? '' : ' is-unread'}`} key={notice.id}><Icon name={(noticeKinds[notice.kind] ?? noticeKinds.system).icon} size={20} /><a href={noticeDestination(notice.url) ?? '/notificacoes'} onClick={event => followLink(event, () => { void openNotice(notice); })}>{notice.text}<time dateTime={notice.created_at}>{noticeTime(notice.created_at)}</time></a></div>)}
+                  <a className="notice-preview-link" href="/notificacoes" onClick={event => followLink(event, () => navigate('notifications'))}>Ver todas as notificações<Icon name="arrow-right" size={17} /></a>
                 </div>
               )}
             </div>
@@ -483,10 +493,11 @@ function MarketplaceApp() {
         </header>
         <main
           id="main-content"
+          ref={contentRef}
           className={`main-content${route.page === "chat" ? " main-content--chat" : ""}`}
           tabIndex={-1}
         >
-          {route.page === 'account' || route.page === 'support' ? <AccountPage key={`${route.page}-${session.user.id}`} support={route.page === 'support'} onNotify={notify} onProfileChange={() => { void market.reload(); void chat.reload(); }} /> : route.page === 'chat' && !chat.loaded ? <div className="page-status" role="status">Carregando conversas...</div> : route.page !== "chat" && !market.loaded ? (
+          {route.page === 'notifications' ? <NotificationsPage key={session.user.id} userId={session.user.id} notifications={notifications} onOpen={openNotice} onNotify={notify} /> : route.page === 'account' || route.page === 'support' ? <AccountPage key={`${route.page}-${session.user.id}`} support={route.page === 'support'} onNotify={notify} onProfileChange={() => { void market.reload(); void chat.reload(); }} /> : route.page === 'chat' && !chat.loaded ? <div className="page-status" role="status">Carregando conversas...</div> : route.page !== "chat" && !market.loaded ? (
             <div className="page-status" role="status">
               {market.error ? (
                 <>
@@ -526,7 +537,7 @@ function MarketplaceApp() {
               }
               onBack={() => navigate("chat")}
               onSendMessage={chat.sendMessage}
-              onMarkRead={chat.markRead}
+              onMarkRead={markConversationRead}
               onToggleFavorite={(id) => { void chat.toggleFavorite(id).catch(failure => notify(errorMessage(failure, 'Não foi possível atualizar a conversa.'))); }}
               onSelectProduct={openProduct}
               onNotify={notify}

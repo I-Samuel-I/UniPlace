@@ -1,5 +1,5 @@
 from django.db import connection, transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import permissions, serializers, status
@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from community.models import Conversation, Favorite, Message, Notification, Ticket
-from community.serializers import ConversationSerializer, MessageInputSerializer, MessageSerializer, NotificationSerializer, TicketSerializer
+from community.serializers import ConversationSerializer, MessageInputSerializer, MessageSerializer, NotificationQuerySerializer, NotificationReadSerializer, NotificationSerializer, TicketSerializer
 from posts.models import Post
 
 
@@ -67,7 +67,7 @@ class ConversationMessagesView(APIView):
         message = Message.objects.create(conversation=conversation, sender=request.user, **serializer.validated_data)
         conversation.save(update_fields=('updated_at',))
         recipient = conversation.seller_id if conversation.buyer_id == request.user.id else conversation.buyer_id
-        Notification.objects.create(user_id=recipient, text=f'{request.user.name} enviou uma mensagem.', url=f'/chat/{conversation.id}')
+        Notification.objects.create(user_id=recipient, kind=Notification.Kind.MESSAGE, text=f'{request.user.name} enviou uma mensagem.', url=f'/chat/{conversation.id}')
         return Response(MessageSerializer(message, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
 
@@ -92,12 +92,51 @@ class ConversationFavoriteView(APIView):
 
 class NotificationsView(APIView):
     def get(self, request):
+        query = NotificationQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        options = query.validated_data
         entries = Notification.objects.filter(user=request.user)
-        return Response({'unread': entries.filter(read_at__isnull=True).count(), 'results': NotificationSerializer(entries[:100], many=True).data})
+        counts = entries.aggregate(
+            total=Count('id'), unread=Count('id', filter=Q(read_at__isnull=True)),
+            **{kind: Count('id', filter=Q(kind=kind)) for kind in Notification.Kind.values},
+        )
+        if options['status'] != 'all':
+            entries = entries.filter(read_at__isnull=options['status'] == 'unread')
+        if options['kind'] != 'all':
+            entries = entries.filter(kind=options['kind'])
+        count = entries.count()
+        start = (options['page'] - 1) * options['page_size']
+        return Response({
+            'total': counts['total'], 'unread': counts['unread'],
+            'kinds': {kind: counts[kind] for kind in Notification.Kind.values},
+            'count': count, 'page': options['page'], 'page_size': options['page_size'],
+            'has_next': start + options['page_size'] < count,
+            'results': NotificationSerializer(entries[start:start + options['page_size']], many=True).data,
+        })
 
     def post(self, request):
-        Notification.objects.filter(user=request.user, read_at__isnull=True).update(read_at=timezone.now())
-        return Response({'read': True})
+        updated = Notification.objects.filter(user=request.user, read_at__isnull=True).update(read_at=timezone.now())
+        return Response({'read': True, 'updated': updated})
+
+
+class NotificationDetailView(APIView):
+    @transaction.atomic
+    def patch(self, request, notification_id):
+        serializer = NotificationReadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        entry = get_object_or_404(Notification.objects.select_for_update(), id=notification_id, user=request.user)
+        entries = Notification.objects.filter(id=entry.id, user=request.user)
+        if serializer.validated_data['read']:
+            entries.filter(read_at__isnull=True).update(read_at=timezone.now())
+        else:
+            entries.update(read_at=None)
+        entry.refresh_from_db()
+        return Response(NotificationSerializer(entry).data)
+
+    def delete(self, request, notification_id):
+        entry = get_object_or_404(Notification, id=notification_id, user=request.user)
+        entry.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TicketsView(APIView):

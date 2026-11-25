@@ -40,6 +40,11 @@ const server = await createServer({
       if (id.endsWith('/src/data/community.ts')) {
         return source.replace('export function useCommunity(userId: number | null) {', `export function useCommunity(userId: number | null) {\nreturn globalThis.${fixtureKey}.community;`);
       }
+      if (id.endsWith('/src/data/notifications.ts')) {
+        return source
+          .replace('export function useNotifications(userId: number | null) {', `export function useNotifications(userId: number | null) {\nreturn globalThis.${fixtureKey}.notifications;`)
+          .replace('export function useNotificationFeed(userId: number, revision: number) {', `export function useNotificationFeed(userId: number, revision: number) {\nreturn globalThis.${fixtureKey}.notificationFeed;`);
+      }
     },
   }],
 });
@@ -89,8 +94,19 @@ try {
         reload: async () => {}, markRead: async () => {}, sendMessage: async () => {}, toggleFavorite: async () => {}, startConversation: async () => '',
       },
       community: {
-        favorites: options.favorites ?? [], notices: { results: [], unread: 0 }, error: '',
-        reload: async () => {}, toggleFavorite: async () => {}, markNoticesRead: async () => {},
+        favorites: options.favorites ?? [], error: '',
+        reload: async () => {}, toggleFavorite: async () => {},
+      },
+      notifications: {
+        data: { results: [], unread: 0, total: 0 }, loaded: true, error: '', busy: null, revision: 0,
+        reload: async () => {}, markRead: async () => true, markAllRead: async () => true, remove: async () => true,
+        ...options.notifications,
+      },
+      notificationFeed: {
+        data: { results: [], unread: 0, total: 0, count: 0, page: 1, page_size: 12, has_next: false },
+        filter: { status: 'all', kind: 'all', page: 1 }, error: '', pending: false,
+        reload: async () => {}, setStatus: () => {}, setKind: () => {}, setPage: () => {},
+        ...options.notificationFeed,
       },
       market: {
         catalog, myPosts: ownPosts, reference, loaded: true, error: null,
@@ -107,8 +123,25 @@ try {
   }
   const cardCount = (html) => (html.match(/<article class="product-card/g) ?? []).length;
 
+  // Unknown URLs show the public 404, even without a session or a working API.
+  for (const path of ["/pagina-inexistente", "/explorar/nao-existe", "/chat/conversa/extra", "/anuncios/item/extra", "/qualquer/coisa/?q=teste#detalhes", "/%E0%A4%A"]) {
+    for (const userSession of [session, null]) {
+      const missing = render(path, { session: userSession, market: { loaded: false, error: "API indisponível" } });
+      assert.ok(missing.includes('id="not-found-main"'), `Expected 404 for ${path}`);
+      assert.ok(missing.includes('PÁGINA NÃO ENCONTRADA'));
+      assert.ok(missing.includes('Voltar ao início'));
+      assert.ok(missing.includes('href="/explorar"'));
+      assert.ok(missing.includes('href="/suporte"'));
+      assert.ok(!missing.includes('id="auth-title"'));
+      assert.ok(!missing.includes('Carregando anúncios'));
+      assert.ok(!missing.includes('API indisponível'));
+      assert.equal(cardCount(missing), 0);
+      assert.deepEqual(activeNavigation(missing), []);
+    }
+  }
+
   // Every protected route must show the actual login form before authentication.
-  for (const path of ["/", "/explorar", "/meus-anuncios", "/chat", "/anuncios/inexistente"]) {
+  for (const path of ["/", "/explorar", "/meus-anuncios", "/chat", "/notificacoes", "/anuncios/inexistente"]) {
     const login = render(path, { session: null });
     assert.match(login, /<h1 id="auth-title"/);
     assert.match(login, /type="email"/);
@@ -132,6 +165,10 @@ try {
   assert.deepEqual(activeNavigation(explore), ["Explorar Anúncios"]);
   assert.ok(explore.includes("Todos os Anúncios"));
   assert.equal(cardCount(explore), 8);
+  for (const path of ['/explorar/', '/anuncios', '/anuncios/']) {
+    assert.deepEqual(activeNavigation(render(path)), ['Explorar Anúncios']);
+    assert.equal(cardCount(render(path)), 8);
+  }
   assert.ok(!explore.includes("Ver anúncio: iPhone 13 128GB"));
   const category = render("/explorar?categoria=eletronicos");
   assert.equal(cardCount(category), 5);
@@ -180,7 +217,53 @@ try {
     assert.ok(legal.includes('Exemplo para apresentação acadêmica'));
     assert.ok(!legal.includes('type="password"'));
   }
-  assert.ok(render('/suporte').includes('Abrir chamado'));
+  const support = render('/suporte', { market: { loaded: false } });
+  assert.ok(support.includes('Ajuda e suporte'));
+  assert.ok(support.includes('Continuar no WhatsApp'));
+  assert.ok(support.includes('(83) 9 9606-7677'));
+  assert.ok(support.includes('Outros assuntos'));
+  assert.ok(support.includes('Chamados e denúncias anteriores'));
+  assert.ok(!support.includes('Carregando anúncios'));
+  const { buildSupportMessage, supportWhatsAppUrl } = await server.ssrLoadModule('/src/data/support.ts');
+  assert.equal(buildSupportMessage({ categoryId: 'support', reasonId: '' }), null);
+  assert.equal(buildSupportMessage({ categoryId: 'issue', reasonId: 'buy' }), null);
+  assert.equal(buildSupportMessage({ categoryId: 'invalid', reasonId: 'other' }), null);
+  assert.equal(buildSupportMessage({ categoryId: 'other', reasonId: '', details: '   ' }), null);
+  assert.equal(buildSupportMessage({ categoryId: 'report', reasonId: 'other', details: '  ' }), null);
+  const customSupport = buildSupportMessage({ categoryId: 'other', reasonId: '', details: '  Sugestão de melhoria & dúvidas? #UniPlace 😊  ' });
+  assert.ok(customSupport.includes('Detalhes:\nSugestão de melhoria & dúvidas? #UniPlace 😊'));
+  const supportUrl = new URL(supportWhatsAppUrl(customSupport));
+  assert.equal(supportUrl.origin, 'https://wa.me');
+  assert.equal(supportUrl.pathname, '/5583996067677');
+  assert.equal(supportUrl.searchParams.get('text'), customSupport);
+  assert.equal([...supportUrl.searchParams].length, 1);
+  const reportMessage = buildSupportMessage({ categoryId: 'report', reasonId: 'scam', reference: ' https://uniplace.test/anuncios/item?a=1&b=2 ', details: 'Descrição da denúncia' });
+  assert.ok(reportMessage.includes('Categoria: Fazer uma denúncia'));
+  assert.ok(reportMessage.includes('Motivo: Suspeita de golpe ou fraude'));
+  assert.ok(reportMessage.includes('Link relacionado: https://uniplace.test/anuncios/item?a=1&b=2'));
+  assert.ok(buildSupportMessage({ categoryId: 'support', reasonId: 'publish' }));
+  const emptyNotices = render('/notificacoes', { market: { loaded: false } });
+  assert.deepEqual(activeNavigation(emptyNotices), ['Notificações']);
+  assert.ok(emptyNotices.includes('Suas novidades chegam por aqui'));
+  assert.ok(!emptyNotices.includes('Carregando anúncios'));
+  const notice = { id: 'notice-1', kind: 'message', text: 'Maria enviou uma mensagem.', url: '/chat/maria', read_at: null, created_at: '2026-11-25T12:00:00Z' };
+  const noticeData = { results: [notice], unread: 1, total: 13, count: 13, page: 1, page_size: 12, has_next: true };
+  const notices = render('/notificacoes/', { notifications: { data: noticeData }, notificationFeed: { data: noticeData } });
+  assert.ok(notices.includes(notice.text));
+  assert.ok(notices.includes('href="/chat/maria"'));
+  assert.ok(notices.includes('Marcar como lida'));
+  assert.ok(notices.includes('Excluir notificação'));
+  assert.ok(notices.includes('1 notificação não lida'));
+  assert.ok(notices.includes('Página 1'));
+  assert.ok(render('/notificacoes', { notificationFeed: { data: null, pending: true } }).includes('Carregando notificações...'));
+  assert.ok(render('/notificacoes', { notificationFeed: { data: null, error: 'Falha nas notificações' } }).includes('Tentar novamente'));
+  assert.ok(render('/notificacoes', { notificationFeed: { filter: { status: 'unread', kind: 'all', page: 1 } } }).includes('Nenhuma notificação neste filtro'));
+  const { noticeDestination, noticeTime } = await server.ssrLoadModule('/src/data/notifications.ts');
+  assert.equal(noticeDestination('https://bad.test'), null);
+  assert.equal(noticeDestination('//bad.test'), null);
+  assert.equal(noticeDestination('/chat/../configuracoes'), null);
+  assert.equal(noticeDestination('/suporte'), '/suporte');
+  assert.equal(noticeTime('2026-11-25T12:00:00Z', Date.parse('2026-11-25T12:05:00Z')), 'há 5 minutos');
 
   // Server updates replace the old account-localStorage demonstrations.
   const changed = ownPosts.map((post) => post.id === "macbook-air-m1-8gb-256gb"
@@ -295,7 +378,7 @@ try {
   await assert.rejects(oldRequest, error => error instanceof ApiError && error.status === 401);
   assert.deepEqual(getSession(), nextSession);
   logout();
-  console.log("Verificações passaram: autenticação e API, renovação de sessão, telas, filtros, favoritos, anúncios, chat e estados inválidos.");
+  console.log("Verificações passaram: autenticação e API, renovação de sessão, telas, filtros, favoritos, anúncios, chat, notificações e estados inválidos.");
 } finally {
   await server.close();
   for (const [key, descriptor] of originals) {

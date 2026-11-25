@@ -4,16 +4,15 @@ import { api, errorMessage, getSession, setSession } from "../lib/api";
 import type { Session, SessionUser } from "../lib/api";
 import { logout } from "../data/session";
 import { DEFAULT_AVATAR } from "../data/productDetails";
-import { RequestForm } from "../components/RequestForm";
+import { SupportPage } from "./SupportPage";
 import { Icon } from "../components/Icon";
-import type { Ticket } from "../data/community";
 import "./account.css";
 
 type Props = { support?: boolean; onNotify: (message: string) => void; onProfileChange?: () => void };
 type Busy = "profile" | "avatar" | "password" | "export" | "sessions" | "delete" | null;
 
 export function AccountPage({ support = false, ...props }: Props) {
-  return support ? <SupportPage onNotify={props.onNotify} /> : <SettingsPage {...props} />;
+  return support ? <SupportPage /> : <SettingsPage {...props} />;
 }
 
 function SettingsPage({ onNotify, onProfileChange }: Omit<Props, "support">) {
@@ -216,7 +215,7 @@ function SettingsPage({ onNotify, onProfileChange }: Omit<Props, "support">) {
         </aside>
 
         <div className="settings-sections">
-          <section id="perfil" className="account-panel settings-section" aria-labelledby="settings-profile-title">
+          <section id="perfil" className="account-panel settings-section" aria-labelledby="settings-profile-title" data-reveal>
             <SectionHeading icon="user" id="settings-profile-title" title="Meu perfil" description="Como você aparece para a comunidade UniPlace." />
             <div className="settings-photo-row">
               <img className="settings-photo" src={profile.avatar || DEFAULT_AVATAR} alt="Sua foto de perfil" width="88" height="88" />
@@ -241,7 +240,7 @@ function SettingsPage({ onNotify, onProfileChange }: Omit<Props, "support">) {
             </form>
           </section>
 
-          <section id="seguranca" className="account-panel settings-section" aria-labelledby="settings-security-title">
+          <section id="seguranca" className="account-panel settings-section" aria-labelledby="settings-security-title" data-reveal>
             <SectionHeading icon="shield" id="settings-security-title" title="Segurança" description="Proteja sua senha e mantenha o controle dos seus acessos." />
             <form className="account-form" onSubmit={changePassword} aria-busy={busy === "password"}>
               <label htmlFor="settings-current-password">Senha atual<input id="settings-current-password" type={showPasswords ? "text" : "password"} required autoComplete="current-password" value={current} onChange={event => setCurrent(event.target.value)} disabled={Boolean(busy)} /></label>
@@ -257,7 +256,7 @@ function SettingsPage({ onNotify, onProfileChange }: Omit<Props, "support">) {
             <button type="button" className="settings-text-button" onClick={logout} disabled={Boolean(busy)}><Icon name="logout" size={18} /> Sair da conta neste navegador</button>
           </section>
 
-          <section id="privacidade" className="account-panel settings-section" aria-labelledby="settings-privacy-title">
+          <section id="privacidade" className="account-panel settings-section" aria-labelledby="settings-privacy-title" data-reveal>
             <SectionHeading icon="file" id="settings-privacy-title" title="Privacidade e seus dados" description="Consulte as regras da comunidade e acesse suas informações." />
             <a className="settings-document-row" href="/termos-de-uso" target="_blank" rel="noreferrer" aria-label="Ler termos de uso em nova aba"><span className="settings-document-icon"><Icon name="file" size={21} /></span><span><strong>Termos de uso</strong><small>Regras de uso, anúncios e convivência.</small></span><Icon name="arrow-right" size={19} /></a>
             <a className="settings-document-row" href="/politica-de-privacidade" target="_blank" rel="noreferrer" aria-label="Ler política de privacidade em nova aba"><span className="settings-document-icon"><Icon name="shield" size={21} /></span><span><strong>Política de privacidade</strong><small>Como seus dados são utilizados e protegidos.</small></span><Icon name="arrow-right" size={19} /></a>
@@ -266,7 +265,7 @@ function SettingsPage({ onNotify, onProfileChange }: Omit<Props, "support">) {
             <p className="settings-example-note"><Icon name="info" size={17} /> Os documentos são exemplos para a apresentação acadêmica do projeto.</p>
           </section>
 
-          <section id="excluir" className="account-panel settings-section settings-danger-zone" aria-labelledby="settings-delete-title">
+          <section id="excluir" className="account-panel settings-section settings-danger-zone" aria-labelledby="settings-delete-title" data-reveal>
             <SectionHeading icon="trash" id="settings-delete-title" title="Excluir minha conta" description="Encerre sua participação no UniPlace de forma permanente." />
             <p>Seu perfil, seus anúncios e suas mensagens enviadas serão removidos. O acesso à conta será encerrado em todos os dispositivos.</p>
             <div className="settings-danger-footer"><span>Essa ação não pode ser desfeita.</span><button className="settings-danger-button" disabled={Boolean(busy)} onClick={() => openModal("delete")}><Icon name="trash" size={18} /> Excluir minha conta</button></div>
@@ -304,12 +303,4 @@ function SettingsDialog({ title, children, onClose, busy }: { title: string; chi
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { const dialog = ref.current; dialog?.showModal(); dialog?.querySelector<HTMLInputElement>("input")?.focus(); return () => dialog?.close(); }, []);
   return <dialog ref={ref} className="settings-dialog" aria-labelledby="settings-dialog-title" onCancel={event => { event.preventDefault(); if (!busy) onClose(); }}><div className="settings-dialog-header"><h2 id="settings-dialog-title">{title}</h2><button type="button" className="icon-button" aria-label="Fechar confirmação" onClick={onClose} disabled={busy}><Icon name="x" size={22} /></button></div>{children}</dialog>;
-}
-
-function SupportPage({ onNotify }: Pick<Props, "onNotify">) {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [error, setError] = useState("");
-  function loadTickets() { return api<Ticket[]>("/me/tickets/").then(setTickets).catch(failure => setError(errorMessage(failure, "Não foi possível carregar os chamados."))); }
-  useEffect(() => { void loadTickets(); }, []);
-  return <section className="account-page"><h1>Ajuda e Suporte</h1>{error && <p role="alert" className="account-error">{error}</p>}<div className="account-panel"><h2>Abrir chamado</h2><RequestForm kind="support" onSuccess={() => { onNotify("Chamado registrado. Acompanhe a resposta abaixo."); void loadTickets(); }} /></div><div className="account-panel"><h2>Seus chamados e denúncias</h2>{tickets.length === 0 ? <p>Nenhum chamado registrado.</p> : tickets.map(ticket => <article className="account-ticket" key={ticket.id}><h3>{ticket.subject}</h3><p>{ticket.message}</p><p>Status: {ticket.status === "open" ? "Aberto" : "Resolvido"}</p>{ticket.reply && <blockquote>{ticket.reply}</blockquote>}</article>)}</div></section>;
 }
