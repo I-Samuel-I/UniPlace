@@ -33,6 +33,8 @@ class User(AbstractUser):
     username = None
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=150)
+    avatar = models.ImageField(upload_to="avatars/", blank=True)
+    session_version = models.PositiveIntegerField(default=0)
 
     objects = UserManager()
 

@@ -271,7 +271,7 @@ export function getProductSeller(product: Product): Seller {
   return {
     id: product.seller.id,
     name: product.seller.name,
-    avatar: DEFAULT_AVATAR,
+    avatar: product.seller.avatar || DEFAULT_AVATAR,
     memberSince: Number.isFinite(joined.getTime())
       ? new Intl.DateTimeFormat("pt-BR", {
           month: "short",

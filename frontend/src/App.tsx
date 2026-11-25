@@ -15,6 +15,8 @@ import { logout, useSession } from "./data/session";
 import { useCommunity } from './data/community';
 import { errorMessage } from './lib/api';
 import { AccountPage } from './pages/AccountPage';
+import { LegalPage } from './pages/LegalPage';
+import { legalKindFromPath } from './data/legal';
 
 type Route = {
   page: "home" | "explore" | "favorites" | "product" | "my-posts" | "chat" | "account" | "support";
@@ -70,6 +72,11 @@ function readRoute(): Route {
   };
 }
 export default function App() {
+  const legalKind = legalKindFromPath(window.location.pathname);
+  return legalKind ? <LegalPage kind={legalKind} /> : <MarketplaceApp />;
+}
+
+function MarketplaceApp() {
   const session = useSession();
   const market = useMarketplace(session?.user.id ?? null);
   const chat = useChat(session?.user.id ?? null);
@@ -438,7 +445,7 @@ export default function App() {
                 }
               >
                 <span className="avatar">
-                  <img src={DEFAULT_AVATAR} alt="" width="29" height="29" />
+                  <img src={session.user.avatar || DEFAULT_AVATAR} alt="" width="29" height="29" />
                   <span className="online-dot" />
                 </span>
                 <Icon name="chevron-down" size={13} />
@@ -479,7 +486,7 @@ export default function App() {
           className={`main-content${route.page === "chat" ? " main-content--chat" : ""}`}
           tabIndex={-1}
         >
-          {route.page === 'account' || route.page === 'support' ? <AccountPage key={`${route.page}-${session.user.id}`} support={route.page === 'support'} onNotify={notify} /> : route.page === 'chat' && !chat.loaded ? <div className="page-status" role="status">Carregando conversas...</div> : route.page !== "chat" && !market.loaded ? (
+          {route.page === 'account' || route.page === 'support' ? <AccountPage key={`${route.page}-${session.user.id}`} support={route.page === 'support'} onNotify={notify} onProfileChange={() => { void market.reload(); void chat.reload(); }} /> : route.page === 'chat' && !chat.loaded ? <div className="page-status" role="status">Carregando conversas...</div> : route.page !== "chat" && !market.loaded ? (
             <div className="page-status" role="status">
               {market.error ? (
                 <>

@@ -66,6 +66,12 @@ No Docker, `API_TARGET=http://backend:8000` faz a mesma integração.
   As mensagens atualizam a cada cinco segundos e quando a janela recebe foco.
   A presença online não é monitorada.
 - `/perfil` e `/configuracoes`: nome da conta e alteração de senha.
+- Essas duas rotas também oferecem foto de perfil, e-mail institucional somente
+  para leitura, download dos próprios dados em JSON, encerramento de outras
+  sessões e exclusão com confirmação de senha e a palavra `EXCLUIR`.
+- `/termos-de-uso` e `/politica-de-privacidade`: documentos públicos de exemplo
+  para apresentação acadêmica, acessíveis pelas configurações e pelo login.
+  Os textos editáveis ficam em `src/data/legal.ts`.
 - `/suporte`: abertura e acompanhamento de chamados e denúncias; a equipe pode
   responder e resolver pelo Django Admin. Não há resposta automática nem suporte instantâneo.
 - Notificações de publicação, mensagens e respostas de chamados, com leitura por conta.

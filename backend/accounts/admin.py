@@ -25,7 +25,7 @@ class CustomUserAdmin(UserAdmin):
     list_display = ("email", "name", "is_staff", "is_active")
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        ("Informações pessoais", {"fields": ("name", "first_name", "last_name")}),
+        ("Informações pessoais", {"fields": ("name", "avatar", "first_name", "last_name")}),
         (
             "Permissões",
             {

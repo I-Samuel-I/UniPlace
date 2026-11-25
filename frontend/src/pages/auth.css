@@ -208,6 +208,10 @@
   font-size: var(--font-caption);
   line-height: 1.6;
 }
+.auth-footer p { margin: 0; }
+.auth-footer nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin-bottom: 10px; }
+.auth-footer a:hover { color: var(--auth-orange-dark); text-decoration: underline; }
+.auth-notice { margin: 0; padding: 14px 16px; border: 1px solid #bde3d2; border-radius: 12px; background: #f0faf5; color: #24684c; font-size: var(--font-body); line-height: 1.6; }
 
 @media (max-width: 960px) {
   .auth-page {

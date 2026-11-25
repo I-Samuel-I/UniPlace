@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Icon } from "../components/Icon";
 import { login, register } from "../data/session";
@@ -16,6 +16,10 @@ export function AuthPage() {
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [notice] = useState(() => {
+    try { return sessionStorage.getItem("uniplace:auth-notice") || ""; } catch { return ""; }
+  });
+  useEffect(() => { try { sessionStorage.removeItem("uniplace:auth-notice"); } catch { /* Opcional. */ } }, []);
 
   function changeMode(next: Mode) {
     setMode(next);
@@ -99,6 +103,7 @@ export function AuthPage() {
               : "Use seu e-mail institucional para fazer parte do UniPlace."}
           </p>
           <form className="auth-form" onSubmit={submit} aria-busy={sending}>
+            {notice && <p className="auth-notice" role="status">{notice}</p>}
             {mode === "register" && (
               <label className="auth-field">
                 <span className="auth-field-label">Nome</span>
@@ -185,9 +190,10 @@ export function AuthPage() {
             </button>
           </form>
         </div>
-        <p className="auth-footer">
-          © 2026 UniPlace. Todos os direitos reservados.
-        </p>
+        <footer className="auth-footer">
+          <nav aria-label="Documentos da plataforma"><a href="/termos-de-uso" target="_blank" rel="noreferrer">Termos de uso</a><span aria-hidden="true">·</span><a href="/politica-de-privacidade" target="_blank" rel="noreferrer">Privacidade</a></nav>
+          <p>© 2026 UniPlace. Todos os direitos reservados.</p>
+        </footer>
       </section>
     </main>
   );

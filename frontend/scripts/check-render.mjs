@@ -172,7 +172,14 @@ try {
   assert.ok(managed.includes("Todos <span>(6)</span>"));
   assert.ok(managed.includes("Ativos <span>(5)</span>"));
   assert.ok(managed.includes("Expirados <span>(1)</span>"));
-  assert.ok(render("/perfil").includes('Meu perfil e configurações'));
+  assert.ok(render("/perfil").includes('Configurações'));
+  assert.ok(render("/configuracoes").includes('Seu perfil, sua segurança e seus dados'));
+  for (const [path, title] of [["/termos-de-uso", "Termos de uso"], ["/politica-de-privacidade", "Política de privacidade"]]) {
+    const legal = render(path, { session: null });
+    assert.ok(legal.includes(title));
+    assert.ok(legal.includes('Exemplo para apresentação acadêmica'));
+    assert.ok(!legal.includes('type="password"'));
+  }
   assert.ok(render('/suporte').includes('Abrir chamado'));
 
   // Server updates replace the old account-localStorage demonstrations.

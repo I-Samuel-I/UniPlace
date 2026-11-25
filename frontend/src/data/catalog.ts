@@ -24,7 +24,7 @@ export type Product = {
   photos?: Array<{ id: string; src: string }>;
   tags?: string[];
   attributes?: Record<string, string>;
-  seller?: { id: string; name: string; memberSince: string };
+  seller?: { id: string; name: string; memberSince: string; avatar?: string | null };
   publishedAt?: string;
 };
 

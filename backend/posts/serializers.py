@@ -106,7 +106,7 @@ class PostSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "is_featured", "published_at", "created_at", "updated_at")
 
     def get_seller(self, obj):
-        return {"id": obj.author_id, "name": obj.author.name, "member_since": obj.author.date_joined}
+        return {"id": obj.author_id, "name": obj.author.name, "member_since": obj.author.date_joined, "avatar": obj.author.avatar.url if obj.author.avatar else None}
 
     def get_cover(self, obj):
         images = list(obj.images.all())

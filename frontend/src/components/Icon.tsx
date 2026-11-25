@@ -1,6 +1,10 @@
 import type { CSSProperties, ReactNode } from "react";
 
 const paths: Record<string, ReactNode> = {
+  lock: <><rect x="4" y="10" width="16" height="12" rx="3" /><path d="M8 10V6a4 4 0 0 1 8 0v4m-4 5v3" /></>,
+  download: <><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" /></>,
+  graduation: <><path d="m2 9 10-5 10 5-10 5L2 9Zm4 3v6c4 3 8 3 12 0v-6m4-3v8" /></>,
+  info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6m0-10v.1" /></>,
   "more-vertical": (
     <>
       <circle cx="12" cy="5" r="1" />

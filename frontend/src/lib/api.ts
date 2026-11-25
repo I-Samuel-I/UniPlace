@@ -4,7 +4,7 @@
 const API_BASE = "/api";
 const SESSION_KEY = "uniplace:session:v1";
 
-export type SessionUser = { id: number; name: string; email: string };
+export type SessionUser = { id: number; name: string; email: string; avatar?: string | null; date_joined?: string };
 export type Session = { access: string; refresh: string; user: SessionUser };
 
 export class ApiError extends Error {
@@ -155,6 +155,11 @@ const fieldLabels: Record<string, string> = {
   image: "Foto",
   images: "Fotos",
   status: "Status",
+  avatar: "Foto de perfil",
+  current_password: "Senha atual",
+  new_password: "Nova senha",
+  new_password_confirmation: "Confirmação da nova senha",
+  confirmation: "Confirmação",
 };
 
 function messages(value: unknown): string[] {

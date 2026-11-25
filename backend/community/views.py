@@ -60,6 +60,8 @@ class ConversationMessagesView(APIView):
     @transaction.atomic
     def post(self, request, conversation_id):
         conversation = get_object_or_404(Conversation.objects.select_for_update().filter(Q(buyer=request.user) | Q(seller=request.user)), id=conversation_id)
+        if not conversation.buyer.is_active or not conversation.seller.is_active:
+            raise serializers.ValidationError('Esta conversa foi encerrada porque uma das contas foi excluída.')
         serializer = MessageInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         message = Message.objects.create(conversation=conversation, sender=request.user, **serializer.validated_data)

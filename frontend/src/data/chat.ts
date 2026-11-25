@@ -13,7 +13,7 @@ export type ChatMessage = {
 };
 export type Conversation = {
   id: string;
-  contact: { id: string; name: string; avatar: string; online: boolean; email?: string; institution: string; memberSince: string; rating?: number; reviewCount?: number };
+  contact: { id: string; name: string; avatar: string; online: boolean; available?: boolean; email?: string; institution: string; memberSince: string; rating?: number; reviewCount?: number };
   productId: string;
   messages: ChatMessage[];
   unread: number;
@@ -22,7 +22,7 @@ export type Conversation = {
 };
 type ApiConversation = {
   id: string;
-  contact: { id: string; name: string; member_since: string };
+  contact: { id: string; name: string; member_since: string; avatar?: string | null; is_active?: boolean };
   product_id: string;
   messages: Array<{ id: string; sender: ChatMessage['sender']; text: string; created_at: string; read_at: string | null; attachment: ChatMessage['attachment'] | null }>;
   unread: number; favorite: boolean; updated_at: string;
@@ -30,7 +30,7 @@ type ApiConversation = {
 function toConversation(value: ApiConversation): Conversation {
   return {
     id: value.id, productId: value.product_id, unread: value.unread, favorite: value.favorite, updatedAt: value.updated_at,
-    contact: { ...value.contact, avatar: DEFAULT_AVATAR, online: false, institution: 'UNIFIP', memberSince: new Date(value.contact.member_since).getFullYear().toString() },
+    contact: { ...value.contact, avatar: value.contact.avatar || DEFAULT_AVATAR, available: value.contact.is_active !== false, online: false, institution: 'UNIFIP', memberSince: new Date(value.contact.member_since).getFullYear().toString() },
     messages: value.messages.map(message => ({ id: message.id, sender: message.sender, text: message.text, createdAt: message.created_at, readAt: message.read_at, attachment: message.attachment ?? undefined })),
   };
 }

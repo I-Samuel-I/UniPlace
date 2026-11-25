@@ -70,7 +70,7 @@ class ConversationSerializer(serializers.ModelSerializer):
 
     def get_contact(self, obj):
         other = obj.seller if obj.buyer_id == self.context['request'].user.id else obj.buyer
-        return {'id': str(other.id), 'name': other.name, 'member_since': other.date_joined.isoformat()}
+        return {'id': str(other.id), 'name': other.name, 'member_since': other.date_joined.isoformat(), 'avatar': other.avatar.url if other.avatar else None, 'is_active': other.is_active}
 
     def get_unread(self, obj):
         user_id = self.context['request'].user.id

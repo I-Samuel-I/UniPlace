@@ -15,7 +15,7 @@ type ApiImage = {
 
 type ApiPost = {
   id: string;
-  seller: { id: number; name: string; member_since: string };
+  seller: { id: number; name: string; member_since: string; avatar?: string | null };
   category: string | null;
   category_name: string | null;
   title: string;
@@ -159,6 +159,7 @@ function toManagedPost(post: ApiPost, groups: Map<string, string>): ManagedPost 
       id: String(post.seller.id),
       name: post.seller.name,
       memberSince: post.seller.member_since,
+      avatar: post.seller.avatar,
     },
     publishedAt: date,
     updatedAt: post.updated_at,

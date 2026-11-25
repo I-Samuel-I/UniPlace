@@ -1,8 +1,13 @@
 from collections.abc import Mapping
+from io import BytesIO
+import uuid
+import warnings
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.files.base import ContentFile
+from PIL import Image, ImageOps, UnidentifiedImageError
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
@@ -10,9 +15,14 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+
+    def get_avatar(self, user):
+        return user.avatar.url if user.avatar else None
+
     class Meta:
         model = User
-        fields = ("id", "name", "email")
+        fields = ("id", "name", "email", "avatar")
         read_only_fields = fields
 
 
@@ -78,6 +88,12 @@ class RegisterSerializer(serializers.ModelSerializer):
 class LoginSerializer(TokenObtainPairSerializer):
     username_field = User.USERNAME_FIELD
 
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token["session_version"] = user.session_version
+        return token
+
     def validate(self, attrs):
         attrs[self.username_field] = attrs[self.username_field].strip().lower()
         data = super().validate(attrs)
@@ -86,10 +102,15 @@ class LoginSerializer(TokenObtainPairSerializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+
+    def get_avatar(self, user):
+        return user.avatar.url if user.avatar else None
+
     class Meta:
         model = User
-        fields = ('id', 'name', 'email', 'date_joined')
-        read_only_fields = ('id', 'email', 'date_joined')
+        fields = ('id', 'name', 'email', 'date_joined', 'avatar')
+        read_only_fields = ('id', 'email', 'date_joined', 'avatar')
 
     def validate_name(self, value):
         value = value.strip()
@@ -127,5 +148,51 @@ class PasswordChangeSerializer(serializers.Serializer):
     def save(self, **kwargs):
         user = self.context["request"].user
         user.set_password(self.validated_data["new_password"])
-        user.save(update_fields=["password"])
+        user.session_version += 1
+        user.save(update_fields=["password", "session_version"])
         return user
+
+
+class CurrentPasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+    def validate_current_password(self, value):
+        if not self.context["request"].user.check_password(value):
+            raise serializers.ValidationError("A senha atual está incorreta.")
+        return value
+
+
+class DeleteAccountSerializer(CurrentPasswordSerializer):
+    confirmation = serializers.CharField(trim_whitespace=False)
+
+    def validate_confirmation(self, value):
+        if value != "EXCLUIR":
+            raise serializers.ValidationError("Digite EXCLUIR para confirmar.")
+        return value
+
+
+class AvatarSerializer(serializers.Serializer):
+    avatar = serializers.ImageField()
+
+    def validate_avatar(self, value):
+        if value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("Envie uma foto de até 5 MB.")
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", Image.DecompressionBombWarning)
+                with Image.open(value) as source:
+                    if source.format not in {"JPEG", "PNG", "WEBP"}:
+                        raise ValueError("format")
+                    if source.width * source.height > 16_000_000:
+                        raise ValueError("dimensions")
+                    source.verify()
+                value.seek(0)
+                with Image.open(value) as source:
+                    image = ImageOps.exif_transpose(source)
+                    image = image.convert("RGBA")
+                    image.thumbnail((512, 512))
+                    output = BytesIO()
+                    image.save(output, format="WEBP", quality=88)
+            return ContentFile(output.getvalue(), name=f"{uuid.uuid4().hex}.webp")
+        except (ValueError, OSError, UnidentifiedImageError, Image.DecompressionBombError, Image.DecompressionBombWarning) as exc:
+            raise serializers.ValidationError("Use uma imagem JPG, PNG ou WebP válida, com até 16 megapixels.") from exc

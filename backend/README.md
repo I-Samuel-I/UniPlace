@@ -335,6 +335,28 @@ Os testes usam banco isolado e diretórios temporários para os uploads.
 
 ## Administração
 
+### Configurações da conta
+
+`GET/PATCH /api/me/` consulta o perfil e altera somente o nome. E-mail, foto,
+permissões e versão de sessão não podem ser alterados por esse PATCH.
+`PUT /api/me/avatar/` recebe multipart com `avatar` (JPG, PNG ou WebP, até 5 MB
+e 16 megapixels). A imagem é normalizada em WebP de até 512 px, sem metadados;
+`DELETE` nessa rota remove a foto. URLs da foto são públicas e retornadas no
+perfil, login, vendedor e contato do chat.
+
+`GET /api/me/export/` exporta os dados da própria conta em JSON, sem senhas ou
+tokens. `POST /api/me/sessions/revoke/` exige `current_password`, invalida os
+tokens anteriores e retorna um novo par para o navegador atual. A troca de
+senha também invalida as sessões anteriores e retorna os novos tokens.
+
+`DELETE /api/me/` exige `current_password` e `confirmation: "EXCLUIR"`.
+Remove os arquivos, mensagens enviadas, favoritos, notificações e chamados do
+usuário; apaga os dados identificadores do perfil e dos anúncios, desativa o
+acesso e invalida suas sessões. Referências sem nome, foto ou e-mail são
+mantidas para preservar as mensagens dos demais participantes. Conversas com
+uma conta excluída permanecem legíveis para os outros participantes e não
+aceitam novas mensagens. Os testes de exclusão usam banco e mídia isolados.
+
 O Django Admin fica em `/admin/`. Crie um administrador com
 `python manage.py createsuperuser`.
 

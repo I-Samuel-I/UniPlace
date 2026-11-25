@@ -210,6 +210,7 @@ export function ChatPage({
   }, [showContact]);
 
   async function sendMessage() {
+    if (conversation?.contact.available === false) return;
     if (!conversation || sending || readingFile || (!text.trim() && !attachment)) return;
     const selectedId = conversation.id;
     setSending(true);
@@ -594,13 +595,14 @@ export function ChatPage({
                 type="button"
                 aria-label="Anexar imagem ou PDF de até 2 MB"
                 onClick={() => fileRef.current?.click()}
-                disabled={readingFile}
+                disabled={readingFile || contact.available === false}
               >
                 <Icon name="paperclip" size={19} />
               </button>
               <textarea
                 aria-label="Digite sua mensagem"
-                placeholder="Digite sua mensagem..."
+                placeholder={contact.available === false ? "Conversa encerrada: conta excluída" : "Digite sua mensagem..."}
+                disabled={contact.available === false}
                 rows={1}
                 maxLength={4000}
                 value={text}
@@ -620,7 +622,7 @@ export function ChatPage({
             <button
               className="chat-send"
               type="submit"
-              disabled={sending || readingFile || (!text.trim() && !attachment)}
+              disabled={contact.available === false || sending || readingFile || (!text.trim() && !attachment)}
               aria-label="Enviar mensagem"
             >
               <Icon name="send" size={21} />
