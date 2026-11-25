@@ -53,14 +53,7 @@ export function AuthPage() {
   return (
     <main className="auth-page">
       <section className="auth-side" aria-labelledby="auth-welcome-title">
-        <div className="auth-brand">
-          <span className="auth-brand-icon">
-            <Icon name="bag" size={16} />
-          </span>
-          <span>
-            Uni<span className="auth-brand-accent">Place</span>
-          </span>
-        </div>
+        <AuthBrand />
         <div className="auth-side-content">
           <h2 id="auth-welcome-title" className="auth-welcome-title">
             Conectando pessoas
@@ -71,27 +64,31 @@ export function AuthPage() {
           </p>
           <img
             className="auth-illustration"
-            src="/images/login.svg"
-            alt="Ilustração de uma pessoa usando o UniPlace"
-            width="300"
-            height="198"
+            src="/images/marketplace-student-transparent.png"
+            alt="Estudante explorando livros, eletrônicos e materiais no marketplace acadêmico"
+            width="1671"
+            height="941"
+            fetchPriority="high"
           />
         </div>
       </section>
 
       <section className="auth-form-side" aria-labelledby="auth-title">
-        <p className="auth-switch">
-          {mode === "login" ? "Não tem uma conta?" : "Já tem uma conta?"}
-          <button
-            type="button"
-            className="auth-switch-button"
-            disabled={sending}
-            onClick={() => changeMode(mode === "login" ? "register" : "login")}
-          >
-            {mode === "login" ? "Cadastre-se" : "Entrar"}
-            <Icon name="arrow-right" size={12} />
-          </button>
-        </p>
+        <div className="auth-form-header">
+          <AuthBrand mobile />
+          <p className="auth-switch">
+            {mode === "login" ? "Não tem uma conta?" : "Já tem uma conta?"}
+            <button
+              type="button"
+              className="auth-switch-button"
+              disabled={sending}
+              onClick={() => changeMode(mode === "login" ? "register" : "login")}
+            >
+              {mode === "login" ? "Cadastre-se" : "Entrar"}
+              <Icon name="arrow-right" size={16} />
+            </button>
+          </p>
+        </div>
         <div className="auth-card">
           <h1 id="auth-title">
             {mode === "login" ? "Bem-vindo de volta!" : "Crie sua conta"}
@@ -105,7 +102,7 @@ export function AuthPage() {
             {mode === "register" && (
               <label className="auth-field">
                 <span className="auth-field-label">Nome</span>
-                <Icon name="user" size={16} />
+                <Icon name="user" size={20} />
                 <input
                   required
                   name="name"
@@ -119,7 +116,7 @@ export function AuthPage() {
             )}
             <label className="auth-field">
               <span className="auth-field-label">E-mail institucional</span>
-              <Icon name="mail" size={16} />
+              <Icon name="mail" size={20} />
               <input
                 required
                 name="email"
@@ -154,7 +151,7 @@ export function AuthPage() {
                 aria-pressed={showPassword}
                 onClick={() => setShowPassword((visible) => !visible)}
               >
-                <Icon name="eye" size={16} />
+                <Icon name="eye" size={20} />
               </button>
             </div>
             {mode === "register" && (
@@ -196,11 +193,20 @@ export function AuthPage() {
   );
 }
 
+function AuthBrand({ mobile = false }: { mobile?: boolean }) {
+  return (
+    <div className={`auth-brand${mobile ? " auth-brand--mobile" : ""}`}>
+      <span className="auth-brand-icon"><Icon name="bag" size={22} /></span>
+      <span>Uni<span className="auth-brand-accent">Place</span></span>
+    </div>
+  );
+}
+
 function PasswordIcon() {
   return (
     <svg
-      width="16"
-      height="16"
+      width="20"
+      height="20"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

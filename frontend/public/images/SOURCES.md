@@ -24,3 +24,12 @@ As fotos não representam ofertas reais, nem comprovam marca, modelo ou estado d
 Licença: https://unsplash.com/license
 
 As fotos de pessoas ilustram perfis fictícios; nomes, avaliações e depoimentos são dados demonstrativos. A galeria do MacBook usa quatro fotografias ilustrativas do modelo, incluindo detalhes de teclado e conexões. Não são fotografias de uma oferta real.
+
+## Ilustração de login e cadastro
+
+- Original fornecido pelo usuário: `Estudante explorando marketplace acadêmico.png`.
+- Arquivo usado nas duas telas: `marketplace-student-transparent.png` (PNG com transparência, 1671 × 941).
+- Edição: ferramenta integrada imagegen, remoção do fundo; o arquivo original foi preservado.
+- Prompt utilizado:
+
+> Use case: background-extraction. Edit target: the supplied PNG illustration of a female student shopping on an academic marketplace, with an orange shopping bubble, a marketplace window of school supplies, books, and a potted plant. Remove ONLY the pale cream full-canvas background and output a genuinely transparent PNG with an alpha channel. Preserve the original illustration, all objects, the exact subject arrangement, colors, orange accents, textures, soft highlights, object boundaries, and proportions. Preserve white and pale areas that belong inside the marketplace interface, shoes, and objects; these must not become transparent holes. Keep the woman, marketplace window, shopping bubble, books, plant, and subtle ground line/shadow. Do not add or remove any subject or text. Do not redesign or restyle. Crop excess empty exterior margins to a close, balanced landscape composition with a small transparent safety margin around every outermost object. Intended use: a large illustration on the UniPlace login/register page against a pale warm background. No solid backdrop, no checkerboard baked into pixels, no frame.

@@ -52,7 +52,7 @@ pip install -r requirements.txt
 Suba o banco e aguarde o status `healthy`:
 
 ```powershell
-docker compose up -d
+docker compose up -d db
 docker compose ps
 ```
 
@@ -352,11 +352,17 @@ Antes de publicar, defina `DJANGO_SECRET_KEY` forte, `DJANGO_DEBUG=False` e
 `DJANGO_ALLOWED_HOSTS` no ambiente.
 
 
-## Integração completa e Docker (Linux)
+## Integração completa e Docker (Windows e Linux)
 
 O Compose também inicia o backend Django e o frontend Vite com recarregamento
 no desenvolvimento. Crie `.env` a partir de `.env.example` sem substituir um
-arquivo local existente. Execute na pasta `backend`:
+arquivo local existente.
+
+No Docker Desktop com o projeto salvo no Windows, configure
+`CHOKIDAR_USEPOLLING=true` no `.env` para detectar alterações no frontend.
+`CHOKIDAR_INTERVAL=300` define o intervalo da verificação em milissegundos.
+
+Execute na pasta `backend`:
 
 ```bash
 docker compose up -d --build --wait
@@ -367,9 +373,10 @@ docker compose logs -f backend frontend
 O banco é persistente no volume já existente, as fotos ficam em `backend/media`
 e as migrações/dados de referência rodam ao iniciar o backend. O frontend abre
 em http://localhost:5173 e `/api/health/` verifica a conexão com o banco.
-A configuração local desta máquina usa PostgreSQL 16 na porta 5433 via override;
-o Compose compartilhado continua com PostgreSQL 17 por padrão. Nunca troque a
-versão principal de um volume PostgreSQL existente sem migrar seus dados.
+O Compose usa PostgreSQL 17 na porta local `5432` por padrão; `DB_PORT` no `.env`
+altera somente a porta publicada no Windows/Linux. Dentro do Docker, o backend
+acessa `db:5432`. Nunca troque a versão principal de um volume PostgreSQL
+existente sem migrar seus dados.
 
 Opcionalmente, `.docker-wheels/` pode conter wheels das dependências testadas
 para Python 3.12/Linux: o Dockerfile os instala sem rede quando presentes.

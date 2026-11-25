@@ -10,6 +10,9 @@ const backend = {
 
 export default defineConfig({
   plugins: [react()],
-  server: { proxy: backend },
+  server: {
+    proxy: backend,
+    watch: { ignored: ["**/.npm-cache/**"] },
+  },
   preview: { proxy: backend },
 });
